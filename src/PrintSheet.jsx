@@ -1,5 +1,31 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import SubjectCard from './SubjectCard'
+
+const MARK_LEN = 8   // length of each cut line
+const MARK_GAP = 3   // gap between card edge and start of line
+
+function CutMarks({ cellW, cellH }) {
+  const s = {
+    position: 'absolute', background: '#888',
+    WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact',
+  }
+  return (
+    <>
+      {/* TL */}
+      <div style={{ ...s, top: -0.5,        left: -(MARK_GAP + MARK_LEN), width: MARK_LEN, height: 1 }} />
+      <div style={{ ...s, left: -0.5,       top:  -(MARK_GAP + MARK_LEN), width: 1, height: MARK_LEN }} />
+      {/* TR */}
+      <div style={{ ...s, top: -0.5,        left: cellW + MARK_GAP,        width: MARK_LEN, height: 1 }} />
+      <div style={{ ...s, left: cellW - 0.5,top:  -(MARK_GAP + MARK_LEN), width: 1, height: MARK_LEN }} />
+      {/* BL */}
+      <div style={{ ...s, top: cellH - 0.5, left: -(MARK_GAP + MARK_LEN), width: MARK_LEN, height: 1 }} />
+      <div style={{ ...s, left: -0.5,       top:  cellH + MARK_GAP,        width: 1, height: MARK_LEN }} />
+      {/* BR */}
+      <div style={{ ...s, top: cellH - 0.5, left: cellW + MARK_GAP,        width: MARK_LEN, height: 1 }} />
+      <div style={{ ...s, left: cellW - 0.5,top:  cellH + MARK_GAP,        width: 1, height: MARK_LEN }} />
+    </>
+  )
+}
 
 const COL_OPTIONS = [
   { cols: 2, label: '2 cols (Large)' },
@@ -38,13 +64,12 @@ export default function PrintSheet({
   onPrintColsChange,
 }) {
   const printAreaRef = useRef(null)
+  const [showCutMarks, setShowCutMarks] = useState(true)
 
   const dims = CARD_DIMS[template] || CARD_DIMS.badge
 
-  // A4 usable width at 96dpi: 794px, with margins ~20px each side → ~754px usable
-  // We want the cards to fit in `printCols` columns with some gap
   const A4_W = 754
-  const GAP = 12
+  const GAP = showCutMarks ? 26 : 12
   const cellW = (A4_W - GAP * (printCols - 1)) / printCols
   const scale = Math.min(cellW / dims.w, 1)
   const cellH = dims.h * scale
@@ -71,6 +96,14 @@ export default function PrintSheet({
                 {opt.label}
               </button>
             ))}
+            <button
+              className={`tone-btn${showCutMarks ? ' active' : ''}`}
+              style={{ padding: '5px 10px', fontSize: '0.75rem' }}
+              onClick={() => setShowCutMarks(v => !v)}
+              title="Show cut guides for trimming"
+            >
+              ✂️ Cut Marks
+            </button>
             <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.85rem' }} onClick={handlePrint}>
               Print
             </button>
@@ -105,10 +138,11 @@ export default function PrintSheet({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      overflow: 'hidden',
+                      overflow: 'visible',
                       position: 'relative',
                     }}
                   >
+                    {showCutMarks && <CutMarks cellW={cellW} cellH={cellH} />}
                     <div style={{
                       transform: `scale(${scale})`,
                       transformOrigin: 'center center',
