@@ -307,6 +307,8 @@ input[type="text"]:focus { border-color: #7c5cbf; background: #faf7ff; }
   transition: transform 0.15s;
 }
 .card-color-dot:hover { transform: scale(1.2); }
+.card-info-dot { font-size: 10px; font-weight: 900; color: rgba(0,0,0,0.45); line-height: 22px; text-align: center; }
+.card-info-dot::after { content: 'T'; }
 
 /* ── Mini color picker ── */
 .mini-color-picker {

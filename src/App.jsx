@@ -221,7 +221,8 @@ function mergeWithDefaults(saved) {
     showEmoji:   saved.showEmoji   ?? true,
     showPhoto:   saved.showPhoto   ?? true,
     customSubjects: saved.customSubjects ?? [],
-    cardColors:  saved.cardColors  ?? {},
+    cardColors:      saved.cardColors      ?? {},
+    subjectInfoColors: saved.subjectInfoColors ?? {},
     borderStyle: saved.borderStyle ?? 'none',
     watermark:   saved.watermark   ?? false,
     cardTopics:  saved.cardTopics  ?? {},
@@ -257,6 +258,10 @@ export default function App() {
   const [cardColors, setCardColors]     = useState(saved.cardColors)       // { [subjId]: { c1, c2 } }
   const [openColorPicker, setOpenColorPicker] = useState(null)             // subjId or null
 
+  // Feature: per-subject info color
+  const [subjectInfoColors, setSubjectInfoColors] = useState(saved.subjectInfoColors) // { [subjId]: '#hex' }
+  const [openInfoPicker, setOpenInfoPicker] = useState(null)               // subjId or null
+
   // Feature: border style
   const [borderStyle, setBorderStyle]   = useState(saved.borderStyle)
 
@@ -288,7 +293,7 @@ export default function App() {
       studentName, grade, section, teacher,
       selected, template, colorTheme, font, fontColor, infoColor,
       cardSize, showEmoji, showPhoto, customSubjects,
-      cardColors, borderStyle, watermark, cardTopics, printCols,
+      cardColors, subjectInfoColors, borderStyle, watermark, cardTopics, printCols,
     }
     localStorage.setItem(LS_KEY, JSON.stringify(data))
 
@@ -300,7 +305,7 @@ export default function App() {
     studentName, grade, section, teacher,
     selected, template, colorTheme, font, fontColor, infoColor,
     cardSize, showEmoji, showPhoto, customSubjects,
-    cardColors, borderStyle, watermark, cardTopics, printCols,
+    cardColors, subjectInfoColors, borderStyle, watermark, cardTopics, printCols,
   ])
 
   const clearSavedData = () => {
@@ -310,7 +315,7 @@ export default function App() {
     setSelected(def.selected); setTemplate(def.template); setColorTheme(def.colorTheme)
     setFont(def.font); setFontColor(def.fontColor); setInfoColor(def.infoColor)
     setCardSize(def.cardSize); setShowEmoji(def.showEmoji); setShowPhoto(def.showPhoto)
-    setCustomSubjects(def.customSubjects); setCardColors(def.cardColors)
+    setCustomSubjects(def.customSubjects); setCardColors(def.cardColors); setSubjectInfoColors(def.subjectInfoColors)
     setBorderStyle(def.borderStyle); setWatermark(def.watermark)
     setCardTopics(def.cardTopics); setPrintCols(def.printCols)
   }
@@ -615,9 +620,10 @@ export default function App() {
               {activeSubjects.map(subj => {
                 const themes       = subj.themes || [{ emojis: ['⭐','📌','✏️'] }]
                 const activeEmojis = themes[0].emojis
-                const cardBg       = subjectBgs[subj.id] || globalCardBg
-                const isFlipped    = !!flippedCards[subj.id]
-                const customColor  = cardColors[subj.id]
+                const cardBg           = subjectBgs[subj.id] || globalCardBg
+                const isFlipped        = !!flippedCards[subj.id]
+                const customColor      = cardColors[subj.id]
+                const subjInfoColor    = subjectInfoColors[subj.id] || infoColor
                 const subjForCard  = customColor
                   ? { ...subj, color: customColor.c1, color2: customColor.c2 }
                   : subj
@@ -645,7 +651,7 @@ export default function App() {
                             colorTheme={colorTheme}
                             font={font}
                             fontColor={fontColor}
-                            infoColor={infoColor}
+                            infoColor={subjInfoColor}
                             showEmoji={showEmoji}
                             emojis={activeEmojis}
                             borderStyle={borderStyle}
@@ -664,7 +670,7 @@ export default function App() {
                             template={template}
                             font={font}
                             fontColor={fontColor}
-                            infoColor={infoColor}
+                            infoColor={subjInfoColor}
                             topics={cardTopics[subj.id] || ['','','','']}
                             onTopicsChange={topics => setCardTopics(prev => ({ ...prev, [subj.id]: topics }))}
                           />
@@ -685,12 +691,20 @@ export default function App() {
                           <button className="card-bg-clear" onClick={() => clearSubjectBg(subj.id)}>✕</button>
                         )}
 
-                        {/* Color dot */}
+                        {/* Card color dot */}
                         <button
                           className="card-color-dot"
                           style={{ background: customColor ? customColor.c1 : subj.color }}
                           title="Custom card color"
-                          onClick={() => setOpenColorPicker(openColorPicker === subj.id ? null : subj.id)}
+                          onClick={() => { setOpenColorPicker(openColorPicker === subj.id ? null : subj.id); setOpenInfoPicker(null) }}
+                        />
+
+                        {/* Info color dot (name/grade/teacher) */}
+                        <button
+                          className="card-color-dot card-info-dot"
+                          style={{ background: subjectInfoColors[subj.id] || infoColor }}
+                          title="Name/Grade/Teacher color for this card"
+                          onClick={() => { setOpenInfoPicker(openInfoPicker === subj.id ? null : subj.id); setOpenColorPicker(null) }}
                         />
 
                         {/* Flip button */}
@@ -711,7 +725,27 @@ export default function App() {
                         )}
                       </div>
 
-                      {/* Inline color picker */}
+                      {/* Inline info color picker */}
+                      {openInfoPicker === subj.id && (
+                        <div className="mini-color-picker">
+                          <div className="mini-color-row">
+                            <label>Name / Grade / Teacher</label>
+                            <input
+                              type="color"
+                              value={subjectInfoColors[subj.id] || infoColor}
+                              onChange={e => setSubjectInfoColors(prev => ({ ...prev, [subj.id]: e.target.value }))}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {subjectInfoColors[subj.id] && (
+                              <button className="btn-tiny outline" style={{ fontSize: '0.7rem' }} onClick={() => setSubjectInfoColors(prev => { const n = { ...prev }; delete n[subj.id]; return n })}>Reset</button>
+                            )}
+                            <button className="btn-tiny" style={{ fontSize: '0.7rem' }} onClick={() => setOpenInfoPicker(null)}>Done</button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Inline card color picker */}
                       {openColorPicker === subj.id && (
                         <div className="mini-color-picker">
                           <div className="mini-color-row">
