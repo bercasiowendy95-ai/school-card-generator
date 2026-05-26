@@ -1,6 +1,8 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import html2canvas from 'html2canvas'
 import SubjectCard from './SubjectCard'
+import CardBack from './CardBack'
+import PrintSheet from './PrintSheet'
 import './App.css'
 
 export const SUBJECTS = [
@@ -162,31 +164,156 @@ const SIZES = [
   { id: 'lg', name: 'Large',  scale: 1.35 },
 ]
 
+const BORDER_STYLES = [
+  { id: 'none',   name: 'None' },
+  { id: 'stars',  name: 'Stars' },
+  { id: 'dots',   name: 'Dots' },
+  { id: 'ribbon', name: 'Ribbon' },
+  { id: 'glow',   name: 'Glow' },
+]
+
+const GRADE_PRESETS = [
+  { label: 'Grade 1', subjects: ['math','english','filipino','mapeh','gmrc'] },
+  { label: 'Grade 2', subjects: ['math','english','filipino','mapeh','gmrc','araling'] },
+  { label: 'Grade 3', subjects: ['math','english','filipino','science','mapeh','gmrc','araling'] },
+  { label: 'Grade 4', subjects: ['mathematics','english','filipino','science','mapeh','esp','ap','epp'] },
+  { label: 'Grade 5', subjects: ['mathematics','english','filipino','science','mapeh','esp','ap','epp','tle'] },
+  { label: 'Grade 6', subjects: ['mathematics','english','filipino','science','mapeh','esp','ap','epp','tle'] },
+  { label: 'HS',      subjects: ['mathematics','english','filipino','science','mapeh','esp','ap','tle','values'] },
+]
+
+const LS_KEY = 'school-card-v1'
+
+/* ── Auto-contrast utility ── */
+export function getAutoContrast(hex) {
+  if (!hex || hex.length < 4) return '#ffffff'
+  let h = hex.replace('#', '')
+  if (h.length === 3) h = h.split('').map(c => c + c).join('')
+  const r = parseInt(h.substring(0, 2), 16) / 255
+  const g = parseInt(h.substring(2, 4), 16) / 255
+  const b = parseInt(h.substring(4, 6), 16) / 255
+  const toLinear = c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+  const L = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b)
+  return L > 0.179 ? '#1a1a1a' : '#ffffff'
+}
+
+/* ── Load / save helpers ── */
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(LS_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch { return {} }
+}
+
+function mergeWithDefaults(saved) {
+  return {
+    studentName: saved.studentName ?? '',
+    grade:       saved.grade       ?? '',
+    section:     saved.section     ?? '',
+    teacher:     saved.teacher     ?? '',
+    selected:    saved.selected    ?? SUBJECTS.map(s => s.id),
+    template:    saved.template    ?? 'badge',
+    colorTheme:  saved.colorTheme  ?? 'vivid',
+    font:        saved.font        ?? 'Fredoka One',
+    fontColor:   saved.fontColor   ?? '#ffffff',
+    infoColor:   saved.infoColor   ?? '#ffffff',
+    cardSize:    saved.cardSize    ?? 'md',
+    showEmoji:   saved.showEmoji   ?? true,
+    showPhoto:   saved.showPhoto   ?? true,
+    customSubjects: saved.customSubjects ?? [],
+    cardColors:  saved.cardColors  ?? {},
+    borderStyle: saved.borderStyle ?? 'none',
+    watermark:   saved.watermark   ?? false,
+    cardTopics:  saved.cardTopics  ?? {},
+    printCols:   saved.printCols   ?? 3,
+  }
+}
+
 export default function App() {
+  const saved = mergeWithDefaults(loadSaved())
+
   const [photo, setPhoto]               = useState(null)
   const [globalCardBg, setGlobalCardBg] = useState(null)
-  const [subjectBgs, setSubjectBgs]     = useState({})       // { subjId: base64 }
-  const [studentName, setStudentName]   = useState('')
-  const [grade, setGrade]               = useState('')
-  const [section, setSection]           = useState('')
-  const [teacher, setTeacher]           = useState('')
-  const [selected, setSelected]         = useState(SUBJECTS.map(s => s.id))
-  const [template, setTemplate]         = useState('badge')
-  const [colorTheme, setColorTheme]     = useState('vivid')
-  const [font, setFont]                 = useState('Fredoka One')
-  const [fontColor, setFontColor]       = useState('#ffffff')
-  const [infoColor, setInfoColor]       = useState('#ffffff')
-  const [cardSize, setCardSize]         = useState('md')
-  const [showEmoji, setShowEmoji]       = useState(true)
-  const [showPhoto, setShowPhoto]       = useState(true)
-  const [customSubjects, setCustomSubjects] = useState([])
+  const [subjectBgs, setSubjectBgs]     = useState({})
+
+  const [studentName, setStudentName]   = useState(saved.studentName)
+  const [grade, setGrade]               = useState(saved.grade)
+  const [section, setSection]           = useState(saved.section)
+  const [teacher, setTeacher]           = useState(saved.teacher)
+  const [selected, setSelected]         = useState(saved.selected)
+  const [template, setTemplate]         = useState(saved.template)
+  const [colorTheme, setColorTheme]     = useState(saved.colorTheme)
+  const [font, setFont]                 = useState(saved.font)
+  const [fontColor, setFontColor]       = useState(saved.fontColor)
+  const [infoColor, setInfoColor]       = useState(saved.infoColor)
+  const [cardSize, setCardSize]         = useState(saved.cardSize)
+  const [showEmoji, setShowEmoji]       = useState(saved.showEmoji)
+  const [showPhoto, setShowPhoto]       = useState(saved.showPhoto)
+  const [customSubjects, setCustomSubjects] = useState(saved.customSubjects)
   const [customName, setCustomName]     = useState('')
   const [downloading, setDownloading]   = useState(null)
 
-  const cardRefs = useRef({})
-  const allSubjects  = [...SUBJECTS, ...customSubjects]
+  // Feature: card colors
+  const [cardColors, setCardColors]     = useState(saved.cardColors)       // { [subjId]: { c1, c2 } }
+  const [openColorPicker, setOpenColorPicker] = useState(null)             // subjId or null
+
+  // Feature: border style
+  const [borderStyle, setBorderStyle]   = useState(saved.borderStyle)
+
+  // Feature: card flip
+  const [flippedCards, setFlippedCards] = useState({})                     // { [subjId]: bool }
+  const [cardTopics, setCardTopics]     = useState(saved.cardTopics)       // { [subjId]: ['','','',''] }
+
+  // Feature: watermark
+  const [watermark, setWatermark]       = useState(saved.watermark)
+
+  // Feature: print sheet
+  const [showPrint, setShowPrint]       = useState(false)
+  const [printCols, setPrintCols]       = useState(saved.printCols)
+
+  // Feature: save flash
+  const [savedFlash, setSavedFlash]     = useState(false)
+  const saveTimerRef = useRef(null)
+
+  const cardRefs    = useRef({})
+  const cardBackRefs = useRef({})
+
+  const allSubjects    = [...SUBJECTS, ...customSubjects]
   const activeSubjects = allSubjects.filter(s => selected.includes(s.id))
-  const scale = SIZES.find(s => s.id === cardSize)?.scale || 1
+  const scale          = SIZES.find(s => s.id === cardSize)?.scale || 1
+
+  /* ── Auto-save to localStorage ── */
+  useEffect(() => {
+    const data = {
+      studentName, grade, section, teacher,
+      selected, template, colorTheme, font, fontColor, infoColor,
+      cardSize, showEmoji, showPhoto, customSubjects,
+      cardColors, borderStyle, watermark, cardTopics, printCols,
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify(data))
+
+    // flash indicator
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    setSavedFlash(true)
+    saveTimerRef.current = setTimeout(() => setSavedFlash(false), 1500)
+  }, [
+    studentName, grade, section, teacher,
+    selected, template, colorTheme, font, fontColor, infoColor,
+    cardSize, showEmoji, showPhoto, customSubjects,
+    cardColors, borderStyle, watermark, cardTopics, printCols,
+  ])
+
+  const clearSavedData = () => {
+    localStorage.removeItem(LS_KEY)
+    const def = mergeWithDefaults({})
+    setStudentName(def.studentName); setGrade(def.grade); setSection(def.section); setTeacher(def.teacher)
+    setSelected(def.selected); setTemplate(def.template); setColorTheme(def.colorTheme)
+    setFont(def.font); setFontColor(def.fontColor); setInfoColor(def.infoColor)
+    setCardSize(def.cardSize); setShowEmoji(def.showEmoji); setShowPhoto(def.showPhoto)
+    setCustomSubjects(def.customSubjects); setCardColors(def.cardColors)
+    setBorderStyle(def.borderStyle); setWatermark(def.watermark)
+    setCardTopics(def.cardTopics); setPrintCols(def.printCols)
+  }
 
   const readFile = useCallback((file, setter) => {
     if (!file || !file.type.startsWith('image/')) return
@@ -208,6 +335,10 @@ export default function App() {
   const toggleSubject = id =>
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
+  const applyGradePreset = (subjects) => {
+    setSelected(subjects)
+  }
+
   const addCustom = () => {
     const name = customName.trim()
     if (!name) return
@@ -222,15 +353,59 @@ export default function App() {
     setCustomName('')
   }
 
+  // Card color picker
+  const setCardColor = (subjId, c1, c2) => {
+    setCardColors(prev => ({ ...prev, [subjId]: { c1, c2 } }))
+  }
+  const clearCardColor = (subjId) => {
+    setCardColors(prev => { const n = { ...prev }; delete n[subjId]; return n })
+  }
+
+  // Card flip
+  const toggleFlip = (subjId) => {
+    setFlippedCards(prev => ({ ...prev, [subjId]: !prev[subjId] }))
+  }
+
+  // Auto-contrast
+  const autoFontColor = () => {
+    if (activeSubjects.length === 0) return
+    const subj = activeSubjects[0]
+    const cc = cardColors[subj.id]
+    const bg = cc ? cc.c1 : subj.color
+    setFontColor(getAutoContrast(bg))
+  }
+  const autoInfoColor = () => {
+    if (activeSubjects.length === 0) return
+    const subj = activeSubjects[0]
+    const cc = cardColors[subj.id]
+    const bg = cc ? cc.c1 : subj.color
+    setInfoColor(getAutoContrast(bg))
+  }
+
   const downloadCard = async subjId => {
-    const el = cardRefs.current[subjId]
+    const el = flippedCards[subjId] ? cardBackRefs.current[subjId] : cardRefs.current[subjId]
     if (!el) return
     setDownloading(subjId)
     try {
       const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, logging: false })
       const link = document.createElement('a')
       const subj = allSubjects.find(s => s.id === subjId)
-      link.download = `${subj?.name.replace(/\n/g, '-') || subjId}.png`
+      link.download = `${subj?.name.replace(/\n/g, '-') || subjId}${flippedCards[subjId] ? '-back' : ''}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    } catch(e) { console.error(e) }
+    setDownloading(null)
+  }
+
+  const downloadBack = async subjId => {
+    const el = cardBackRefs.current[subjId]
+    if (!el) return
+    setDownloading(subjId + '_back')
+    try {
+      const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, logging: false })
+      const link = document.createElement('a')
+      const subj = allSubjects.find(s => s.id === subjId)
+      link.download = `${subj?.name.replace(/\n/g, '-') || subjId}-back.png`
       link.href = canvas.toDataURL('image/png')
       link.click()
     } catch(e) { console.error(e) }
@@ -249,6 +424,7 @@ export default function App() {
       <div className="header">
         <h1>🎒 School Card Maker</h1>
         <p>Generate personalized subject cards for your child — one card per subject!</p>
+        {savedFlash && <div className="saved-flash">✓ Saved</div>}
       </div>
 
       <div className="sidebar-layout">
@@ -318,11 +494,11 @@ export default function App() {
                   onClick={() => setFontColor(c.value)}
                 />
               ))}
-              {/* Custom color */}
               <label className="color-swatch custom-color" title="Custom color">
                 <input type="color" value={fontColor} onChange={e => setFontColor(e.target.value)} />
                 <span>🎨</span>
               </label>
+              <button className="auto-btn" title="Auto contrast based on first card" onClick={autoFontColor}>Auto</button>
             </div>
 
             <label style={{ marginTop: 8 }}>Name / Grade / Teacher Color</label>
@@ -340,6 +516,7 @@ export default function App() {
                 <input type="color" value={infoColor} onChange={e => setInfoColor(e.target.value)} />
                 <span>🎨</span>
               </label>
+              <button className="auto-btn" title="Auto contrast based on first card" onClick={autoInfoColor}>Auto</button>
             </div>
 
             <label style={{ marginTop: 8 }}>Color Tone</label>
@@ -356,15 +533,37 @@ export default function App() {
               ))}
             </div>
 
+            <label style={{ marginTop: 8 }}>Border Frame</label>
+            <div className="tone-row" style={{ flexWrap: 'wrap' }}>
+              {BORDER_STYLES.map(b => (
+                <button key={b.id} className={`tone-btn${borderStyle === b.id ? ' active' : ''}`} onClick={() => setBorderStyle(b.id)}>{b.name}</button>
+              ))}
+            </div>
+
             <div className="toggle-row" style={{ marginTop: 12 }}>
               <Toggle label="Show Emojis" value={showEmoji} onChange={setShowEmoji} />
               <Toggle label="Show Photo"  value={showPhoto}  onChange={setShowPhoto} />
+              <Toggle label="Watermark"   value={watermark}  onChange={setWatermark} />
             </div>
+
+            <button className="clear-saved-btn" onClick={clearSavedData} style={{ marginTop: 12 }}>
+              🗑️ Clear saved data
+            </button>
           </div>
 
           {/* Subjects */}
           <div className="panel">
             <h2>📖 Subjects</h2>
+
+            {/* Grade Presets */}
+            <div className="grade-presets">
+              {GRADE_PRESETS.map(p => (
+                <button key={p.label} className="btn-tiny grade-preset-btn" onClick={() => applyGradePreset(p.subjects)}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
             <div className="subj-actions">
               <button className="btn-tiny" onClick={() => setSelected(allSubjects.map(s => s.id))}>All</button>
               <button className="btn-tiny outline" onClick={() => setSelected([])}>Clear</button>
@@ -394,9 +593,16 @@ export default function App() {
             <h2 style={{ fontFamily:"'Fredoka One',cursive", color:'#4a2dad', fontSize:'1.2rem' }}>
               🖼️ {activeSubjects.length} Card{activeSubjects.length !== 1 ? 's' : ''}
             </h2>
-            {activeSubjects.length > 0 && (
-              <button className="btn-primary" onClick={downloadAll}>⬇️ Download All</button>
-            )}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {activeSubjects.length > 0 && (
+                <>
+                  <button className="btn-primary" style={{ fontSize: '0.85rem', padding: '9px 16px' }} onClick={() => setShowPrint(true)}>
+                    🖨️ Print Sheet
+                  </button>
+                  <button className="btn-primary" onClick={downloadAll}>⬇️ Download All</button>
+                </>
+              )}
+            </div>
           </div>
 
           {activeSubjects.length === 0 ? (
@@ -410,35 +616,67 @@ export default function App() {
                 const themes       = subj.themes || [{ emojis: ['⭐','📌','✏️'] }]
                 const activeEmojis = themes[0].emojis
                 const cardBg       = subjectBgs[subj.id] || globalCardBg
+                const isFlipped    = !!flippedCards[subj.id]
+                const customColor  = cardColors[subj.id]
+                const subjForCard  = customColor
+                  ? { ...subj, color: customColor.c1, color2: customColor.c2 }
+                  : subj
 
                 return (
                   <div key={subj.id} className="card-wrapper">
-                    {/* Card */}
-                    <div style={{ transform:`scale(${scale})`, transformOrigin:'top center', transition:'transform 0.2s' }}>
-                      <SubjectCard
-                        ref={el => cardRefs.current[subj.id] = el}
-                        subject={subj}
-                        photo={showPhoto ? photo : null}
-                        cardBg={cardBg}
-                        studentName={studentName}
-                        grade={grade}
-                        section={section}
-                        teacher={teacher}
-                        template={template}
-                        colorTheme={colorTheme}
-                        font={font}
-                        fontColor={fontColor}
-                        infoColor={infoColor}
-                        showEmoji={showEmoji}
-                        emojis={activeEmojis}
-                      />
+                    {/* 3D flip container */}
+                    <div
+                      className={`flip-container${isFlipped ? ' flipped' : ''}`}
+                      style={{ transform: `scale(${scale})`, transformOrigin: 'top center', transition: 'transform 0.2s' }}
+                    >
+                      <div className="flip-inner">
+                        {/* Front */}
+                        <div className="flip-front">
+                          <SubjectCard
+                            ref={el => cardRefs.current[subj.id] = el}
+                            subject={subjForCard}
+                            photo={showPhoto ? photo : null}
+                            cardBg={cardBg}
+                            studentName={studentName}
+                            grade={grade}
+                            section={section}
+                            teacher={teacher}
+                            template={template}
+                            colorTheme={colorTheme}
+                            font={font}
+                            fontColor={fontColor}
+                            infoColor={infoColor}
+                            showEmoji={showEmoji}
+                            emojis={activeEmojis}
+                            borderStyle={borderStyle}
+                            watermark={watermark}
+                          />
+                        </div>
+                        {/* Back */}
+                        <div className="flip-back">
+                          <CardBack
+                            ref={el => cardBackRefs.current[subj.id] = el}
+                            subject={subjForCard}
+                            studentName={studentName}
+                            grade={grade}
+                            section={section}
+                            teacher={teacher}
+                            template={template}
+                            font={font}
+                            fontColor={fontColor}
+                            infoColor={infoColor}
+                            topics={cardTopics[subj.id] || ['','','','']}
+                            onTopicsChange={topics => setCardTopics(prev => ({ ...prev, [subj.id]: topics }))}
+                          />
+                        </div>
+                      </div>
                     </div>
                     <div style={{ height: getScaleOffset(template, scale) }} />
 
                     {/* Per-subject controls */}
                     <div className="card-controls">
-                      {/* Per-subject BG */}
                       <div className="card-actions-row">
+                        {/* Per-subject BG */}
                         <label className="card-bg-btn" title="Upload background for this card">
                           {subjectBgs[subj.id] ? '🖼️ Change BG' : '🖼️ Add BG'}
                           <input type="file" accept="image/*" onChange={e => handleSubjectBg(subj.id, e.target.files[0])} />
@@ -446,10 +684,68 @@ export default function App() {
                         {subjectBgs[subj.id] && (
                           <button className="card-bg-clear" onClick={() => clearSubjectBg(subj.id)}>✕</button>
                         )}
+
+                        {/* Color dot */}
+                        <button
+                          className="card-color-dot"
+                          style={{ background: customColor ? customColor.c1 : subj.color }}
+                          title="Custom card color"
+                          onClick={() => setOpenColorPicker(openColorPicker === subj.id ? null : subj.id)}
+                        />
+
+                        {/* Flip button */}
+                        <button className="dl-btn" onClick={() => toggleFlip(subj.id)}>
+                          {isFlipped ? '↩ Front' : '↩ Back'}
+                        </button>
+
+                        {/* Download */}
                         <button className="dl-btn" onClick={() => downloadCard(subj.id)} disabled={downloading === subj.id}>
                           {downloading === subj.id ? '⏳' : '⬇️'} Save
                         </button>
+
+                        {/* Save back */}
+                        {isFlipped && (
+                          <button className="dl-btn" onClick={() => downloadBack(subj.id)} disabled={downloading === subj.id + '_back'}>
+                            {downloading === subj.id + '_back' ? '⏳' : '⬇️'} Back
+                          </button>
+                        )}
                       </div>
+
+                      {/* Inline color picker */}
+                      {openColorPicker === subj.id && (
+                        <div className="mini-color-picker">
+                          <div className="mini-color-row">
+                            <label>Gradient Start</label>
+                            <input
+                              type="color"
+                              value={customColor?.c1 || subj.color}
+                              onChange={e => {
+                                const c2 = customColor?.c2 || subj.color2
+                                setCardColor(subj.id, e.target.value, c2)
+                                // auto-suggest font color
+                                setFontColor(getAutoContrast(e.target.value))
+                              }}
+                            />
+                          </div>
+                          <div className="mini-color-row">
+                            <label>Gradient End</label>
+                            <input
+                              type="color"
+                              value={customColor?.c2 || subj.color2}
+                              onChange={e => {
+                                const c1 = customColor?.c1 || subj.color
+                                setCardColor(subj.id, c1, e.target.value)
+                              }}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {customColor && (
+                              <button className="btn-tiny outline" style={{ fontSize: '0.7rem' }} onClick={() => clearCardColor(subj.id)}>Reset</button>
+                            )}
+                            <button className="btn-tiny" style={{ fontSize: '0.7rem' }} onClick={() => setOpenColorPicker(null)}>Done</button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -458,6 +754,32 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Print Sheet Modal */}
+      {showPrint && (
+        <PrintSheet
+          onClose={() => setShowPrint(false)}
+          activeSubjects={activeSubjects}
+          photo={showPhoto ? photo : null}
+          subjectBgs={subjectBgs}
+          globalCardBg={globalCardBg}
+          studentName={studentName}
+          grade={grade}
+          section={section}
+          teacher={teacher}
+          template={template}
+          colorTheme={colorTheme}
+          font={font}
+          fontColor={fontColor}
+          infoColor={infoColor}
+          showEmoji={showEmoji}
+          cardColors={cardColors}
+          borderStyle={borderStyle}
+          watermark={watermark}
+          printCols={printCols}
+          onPrintColsChange={setPrintCols}
+        />
+      )}
     </div>
   )
 }
@@ -467,7 +789,7 @@ function getScaleOffset(template, scale) {
   return Math.max(0, baseH * (scale - 1)) + 'px'
 }
 
-/* ── Upload Zone ── fixed: hidden input triggered by ref, remove button works */
+/* ── Upload Zone ── */
 function UploadZone({ value, onSet, onClear, placeholder, hint, compact }) {
   const inputRef = useRef(null)
 
@@ -498,17 +820,13 @@ function UploadZone({ value, onSet, onClear, placeholder, hint, compact }) {
       onDragOver={e => e.preventDefault()}
       onDrop={handleDrop}
     >
-      {/* hidden input — not overlaying, triggered by ref click */}
       <input ref={inputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleChange} />
       {value ? (
         <>
           <img src={value} className={compact ? 'preview-img-sm' : 'preview-img'} alt="preview" />
           <p style={{ fontSize:'0.75rem' }}>
             Click to change &nbsp;
-            <span
-              className="remove-btn"
-              onClick={e => { e.stopPropagation(); onClear() }}
-            >✕ Remove</span>
+            <span className="remove-btn" onClick={e => { e.stopPropagation(); onClear() }}>✕ Remove</span>
           </p>
         </>
       ) : (
