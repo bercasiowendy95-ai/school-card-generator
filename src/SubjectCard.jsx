@@ -63,7 +63,7 @@ function NameTag({ studentName, grade, section, teacher, sectionBg = 'rgba(0,0,0
         <div style={{
           fontFamily:"'Nunito',sans-serif", fontSize:10, fontWeight:700,
           color:'rgba(255,255,255,0.8)', fontStyle:'italic',
-        }}>👩‍🏫 {teacher}</div>
+        }}>{teacher}</div>
       )}
     </div>
   )
@@ -162,7 +162,7 @@ const BadgeCard = forwardRef(function BadgeCard(
         <div style={{ position:'relative', zIndex:2, textAlign:'center', padding:'0 8px' }}>
           {studentName && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:9, fontWeight:900, color:'rgba(255,255,255,0.9)', lineHeight:1.3 }}>{studentName}</div>}
           {(grade || section) && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:8, fontWeight:700, color:'rgba(255,255,255,0.75)' }}>{[grade,section].filter(Boolean).join(' · ')}</div>}
-          {teacher && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:8, fontWeight:600, color:'rgba(255,255,255,0.65)', fontStyle:'italic' }}>👩‍🏫 {teacher}</div>}
+          {teacher && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:8, fontWeight:600, color:'rgba(255,255,255,0.65)', fontStyle:'italic' }}>{teacher}</div>}
         </div>
       )}
 
