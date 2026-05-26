@@ -367,7 +367,7 @@ const PortraitCard = forwardRef(function PortraitCard(
       <div style={{ position: 'absolute', top: 60, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', zIndex: 1, pointerEvents: 'none' }} />
 
       {/* Subject name banner */}
-      <div style={{ width: '100%', background: 'rgba(0,0,0,0.2)', padding: '12px 10px 10px', textAlign: 'center', position: 'relative', zIndex: 2, marginBottom: 10 }}>
+      <div style={{ width: '100%', padding: '12px 10px 10px', textAlign: 'center', position: 'relative', zIndex: 2, marginBottom: 10 }}>
         <div style={{ display: 'inline-block', background: hexToRgba(titleBgColor, titleBgOpacity), borderRadius: 8, padding: titleBgOpacity > 0 ? '2px 10px' : 0 }}>
           <div style={{
             fontFamily: `'${font}',cursive`,
