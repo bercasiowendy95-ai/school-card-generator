@@ -220,9 +220,13 @@ function mergeWithDefaults(saved) {
     showEmoji:   saved.showEmoji   ?? true,
     showPhoto:   saved.showPhoto   ?? true,
     customSubjects: saved.customSubjects ?? [],
-    cardColors:        saved.cardColors        ?? {},
-    subjectFontColors: saved.subjectFontColors ?? {},
-    subjectInfoColors: saved.subjectInfoColors ?? {},
+    cardColors:               saved.cardColors               ?? {},
+    subjectFontColors:        saved.subjectFontColors        ?? {},
+    subjectInfoColors:        saved.subjectInfoColors        ?? {},
+    subjectTitleBgColors:     saved.subjectTitleBgColors     ?? {},
+    subjectTitleBgOpacities:  saved.subjectTitleBgOpacities  ?? {},
+    subjectInfoBgColors:      saved.subjectInfoBgColors      ?? {},
+    subjectInfoBgOpacities:   saved.subjectInfoBgOpacities   ?? {},
     borderStyle: saved.borderStyle ?? 'none',
     watermark:   saved.watermark   ?? false,
     printCols:   saved.printCols   ?? 3,
@@ -269,6 +273,12 @@ export default function App() {
   const [subjectInfoColors, setSubjectInfoColors] = useState(saved.subjectInfoColors) // { [subjId]: '#hex' }
   const [openInfoPicker, setOpenInfoPicker] = useState(null)               // subjId or null
 
+  // Feature: per-subject text backdrops
+  const [subjectTitleBgColors,    setSubjectTitleBgColors]    = useState(saved.subjectTitleBgColors)
+  const [subjectTitleBgOpacities, setSubjectTitleBgOpacities] = useState(saved.subjectTitleBgOpacities)
+  const [subjectInfoBgColors,     setSubjectInfoBgColors]     = useState(saved.subjectInfoBgColors)
+  const [subjectInfoBgOpacities,  setSubjectInfoBgOpacities]  = useState(saved.subjectInfoBgOpacities)
+
   // Feature: border style
   const [borderStyle, setBorderStyle]   = useState(saved.borderStyle)
 
@@ -303,6 +313,7 @@ export default function App() {
       cardSize, showEmoji, showPhoto, customSubjects,
       cardColors, subjectFontColors, subjectInfoColors, borderStyle, watermark, printCols,
       titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity,
+      subjectTitleBgColors, subjectTitleBgOpacities, subjectInfoBgColors, subjectInfoBgOpacities,
     }
     localStorage.setItem(LS_KEY, JSON.stringify(data))
 
@@ -316,6 +327,7 @@ export default function App() {
     cardSize, showEmoji, showPhoto, customSubjects,
     cardColors, subjectFontColors, subjectInfoColors, borderStyle, watermark, printCols,
     titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity,
+    subjectTitleBgColors, subjectTitleBgOpacities, subjectInfoBgColors, subjectInfoBgOpacities,
   ])
 
   const clearSavedData = () => {
@@ -330,6 +342,8 @@ export default function App() {
     setPrintCols(def.printCols)
     setTitleBgColor(def.titleBgColor); setTitleBgOpacity(def.titleBgOpacity)
     setInfoBgColor(def.infoBgColor); setInfoBgOpacity(def.infoBgOpacity)
+    setSubjectTitleBgColors(def.subjectTitleBgColors); setSubjectTitleBgOpacities(def.subjectTitleBgOpacities)
+    setSubjectInfoBgColors(def.subjectInfoBgColors); setSubjectInfoBgOpacities(def.subjectInfoBgOpacities)
   }
 
   const readFile = useCallback((file, setter) => {
@@ -636,8 +650,12 @@ export default function App() {
                 const activeEmojis = themes[0].emojis
                 const cardBg      = subjectBgs[subj.id] || globalCardBg
                 const customColor = cardColors[subj.id]
-                const subjFontColor    = subjectFontColors[subj.id] || fontColor
-                const subjInfoColor    = subjectInfoColors[subj.id] || infoColor
+                const subjFontColor       = subjectFontColors[subj.id]    || fontColor
+                const subjInfoColor       = subjectInfoColors[subj.id]   || infoColor
+                const subjTitleBgColor    = subjectTitleBgColors[subj.id]    ?? titleBgColor
+                const subjTitleBgOpacity  = subjectTitleBgOpacities[subj.id] ?? titleBgOpacity
+                const subjInfoBgColor     = subjectInfoBgColors[subj.id]     ?? infoBgColor
+                const subjInfoBgOpacity   = subjectInfoBgOpacities[subj.id]  ?? infoBgOpacity
                 const subjForCard  = customColor
                   ? { ...subj, color: customColor.c1, color2: customColor.c2 }
                   : subj
@@ -663,10 +681,10 @@ export default function App() {
                         emojis={activeEmojis}
                         borderStyle={borderStyle}
                         watermark={watermark}
-                        titleBgColor={titleBgColor}
-                        titleBgOpacity={titleBgOpacity}
-                        infoBgColor={infoBgColor}
-                        infoBgOpacity={infoBgOpacity}
+                        titleBgColor={subjTitleBgColor}
+                        titleBgOpacity={subjTitleBgOpacity}
+                        infoBgColor={subjInfoBgColor}
+                        infoBgOpacity={subjInfoBgOpacity}
                       />
                     </div>
                     <div style={{ height: getScaleOffset(template, scale) }} />
@@ -724,6 +742,22 @@ export default function App() {
                               onChange={e => setSubjectFontColors(prev => ({ ...prev, [subj.id]: e.target.value }))}
                             />
                           </div>
+                          <div className="mini-color-row">
+                            <label>Name Backdrop</label>
+                            <input
+                              type="color"
+                              value={subjectTitleBgColors[subj.id] ?? titleBgColor}
+                              onChange={e => setSubjectTitleBgColors(prev => ({ ...prev, [subj.id]: e.target.value }))}
+                            />
+                          </div>
+                          <div className="backdrop-row" style={{ padding: '0 4px 6px' }}>
+                            <input
+                              type="range" min="0" max="90"
+                              value={Math.round((subjectTitleBgOpacities[subj.id] ?? titleBgOpacity) * 100)}
+                              onChange={e => setSubjectTitleBgOpacities(prev => ({ ...prev, [subj.id]: Number(e.target.value) / 100 }))}
+                            />
+                            <span className="opacity-pct">{Math.round((subjectTitleBgOpacities[subj.id] ?? titleBgOpacity) * 100)}%</span>
+                          </div>
                           <div style={{ display: 'flex', gap: 6 }}>
                             {subjectFontColors[subj.id] && (
                               <button className="btn-tiny outline" style={{ fontSize: '0.7rem' }} onClick={() => setSubjectFontColors(prev => { const n = { ...prev }; delete n[subj.id]; return n })}>Reset</button>
@@ -743,6 +777,22 @@ export default function App() {
                               value={subjectInfoColors[subj.id] || infoColor}
                               onChange={e => setSubjectInfoColors(prev => ({ ...prev, [subj.id]: e.target.value }))}
                             />
+                          </div>
+                          <div className="mini-color-row">
+                            <label>Info Backdrop</label>
+                            <input
+                              type="color"
+                              value={subjectInfoBgColors[subj.id] ?? infoBgColor}
+                              onChange={e => setSubjectInfoBgColors(prev => ({ ...prev, [subj.id]: e.target.value }))}
+                            />
+                          </div>
+                          <div className="backdrop-row" style={{ padding: '0 4px 6px' }}>
+                            <input
+                              type="range" min="0" max="90"
+                              value={Math.round((subjectInfoBgOpacities[subj.id] ?? infoBgOpacity) * 100)}
+                              onChange={e => setSubjectInfoBgOpacities(prev => ({ ...prev, [subj.id]: Number(e.target.value) / 100 }))}
+                            />
+                            <span className="opacity-pct">{Math.round((subjectInfoBgOpacities[subj.id] ?? infoBgOpacity) * 100)}%</span>
                           </div>
                           <div style={{ display: 'flex', gap: 6 }}>
                             {subjectInfoColors[subj.id] && (
@@ -816,10 +866,20 @@ export default function App() {
           infoColor={infoColor}
           showEmoji={showEmoji}
           cardColors={cardColors}
+          subjectFontColors={subjectFontColors}
+          subjectInfoColors={subjectInfoColors}
           borderStyle={borderStyle}
           watermark={watermark}
           printCols={printCols}
           onPrintColsChange={setPrintCols}
+          titleBgColor={titleBgColor}
+          titleBgOpacity={titleBgOpacity}
+          infoBgColor={infoBgColor}
+          infoBgOpacity={infoBgOpacity}
+          subjectTitleBgColors={subjectTitleBgColors}
+          subjectTitleBgOpacities={subjectTitleBgOpacities}
+          subjectInfoBgColors={subjectInfoBgColors}
+          subjectInfoBgOpacities={subjectInfoBgOpacities}
         />
       )}
     </div>

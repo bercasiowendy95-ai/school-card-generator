@@ -51,10 +51,20 @@ export default function PrintSheet({
   infoColor,
   showEmoji,
   cardColors,
+  subjectFontColors = {},
+  subjectInfoColors = {},
   borderStyle,
   watermark,
   printCols,
   onPrintColsChange,
+  titleBgColor,
+  titleBgOpacity = 0,
+  infoBgColor,
+  infoBgOpacity = 0,
+  subjectTitleBgColors = {},
+  subjectTitleBgOpacities = {},
+  subjectInfoBgColors = {},
+  subjectInfoBgOpacities = {},
 }) {
   const printAreaRef = useRef(null)
   const [showCutMarks, setShowCutMarks] = useState(true)
@@ -121,6 +131,12 @@ export default function PrintSheet({
                 const activeEmojis = themes[0].emojis
                 const cardBg = subjectBgs[subj.id] || globalCardBg
                 const customColor = cardColors?.[subj.id]
+                const subjFontColor      = subjectFontColors[subj.id]      || fontColor
+                const subjInfoColor      = subjectInfoColors[subj.id]      || infoColor
+                const subjTitleBgColor   = subjectTitleBgColors[subj.id]   ?? titleBgColor
+                const subjTitleBgOpacity = subjectTitleBgOpacities[subj.id] ?? titleBgOpacity
+                const subjInfoBgColor    = subjectInfoBgColors[subj.id]    ?? infoBgColor
+                const subjInfoBgOpacity  = subjectInfoBgOpacities[subj.id] ?? infoBgOpacity
 
                 return (
                   <div
@@ -155,12 +171,16 @@ export default function PrintSheet({
                         template={template}
                         colorTheme={colorTheme}
                         font={font}
-                        fontColor={fontColor}
-                        infoColor={infoColor}
+                        fontColor={subjFontColor}
+                        infoColor={subjInfoColor}
                         showEmoji={showEmoji}
                         emojis={activeEmojis}
                         borderStyle={borderStyle}
                         watermark={watermark}
+                        titleBgColor={subjTitleBgColor}
+                        titleBgOpacity={subjTitleBgOpacity}
+                        infoBgColor={subjInfoBgColor}
+                        infoBgOpacity={subjInfoBgOpacity}
                       />
                     </div>
                   </div>
