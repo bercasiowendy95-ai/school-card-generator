@@ -440,6 +440,38 @@ input[type="text"]:focus { border-color: #7c5cbf; background: #faf7ff; }
   min-width: 754px;
 }
 
+/* Panel section divider */
+.panel-section {
+  border-top: 1px solid #f0eaff;
+  padding-top: 10px;
+  margin-top: 6px;
+}
+.sub-label {
+  font-size: 0.68rem; font-weight: 700; color: #aaa;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  display: block; margin-bottom: 4px; margin-top: 6px;
+}
+/* Backdrop controls row */
+.backdrop-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+}
+.backdrop-row input[type="color"] {
+  width: 28px; height: 28px; border-radius: 8px;
+  border: 2px solid #e0d8f0; padding: 0; cursor: pointer; flex-shrink: 0;
+}
+.backdrop-row input[type="range"] {
+  flex: 1; -webkit-appearance: none; height: 4px; border-radius: 2px;
+  background: #e0d8f0; outline: none; cursor: pointer;
+}
+.backdrop-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+  background: #7c5cbf; cursor: pointer;
+}
+.opacity-pct {
+  font-size: 0.7rem; font-weight: 800; color: #888;
+  min-width: 28px; text-align: right;
+}
+
 /* ── @media print ── */
 @media print {
   body > * { display: none !important; }

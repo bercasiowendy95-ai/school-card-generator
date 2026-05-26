@@ -1,7 +1,15 @@
 import { forwardRef } from 'react'
 
+function hexToRgba(hex, opacity) {
+  if (!opacity) return 'transparent'
+  let h = hex.replace('#','')
+  if (h.length === 3) h = h.split('').map(c=>c+c).join('')
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16)
+  return `rgba(${r},${g},${b},${opacity})`
+}
+
 const SubjectCard = forwardRef(function SubjectCard(
-  { subject, photo, cardBg, studentName, grade, section, teacher, template, colorTheme, font, fontColor, infoColor, showEmoji, emojis, borderStyle, watermark },
+  { subject, photo, cardBg, studentName, grade, section, teacher, template, colorTheme, font, fontColor, infoColor, showEmoji, emojis, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity },
   ref
 ) {
   const filterStyle = {
@@ -14,6 +22,7 @@ const SubjectCard = forwardRef(function SubjectCard(
     subject, photo, cardBg, studentName, grade, section, teacher,
     font, fontColor, infoColor: infoColor || '#ffffff',
     showEmoji, emojis, filterStyle, borderStyle, watermark,
+    titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity,
   }
 
   if (template === 'label')    return <LabelCard    ref={ref} {...props} />
@@ -42,11 +51,11 @@ function BgLayer({ cardBg, color, color2, gradient }) {
 }
 
 /* Name tag shown on cards */
-function NameTag({ studentName, grade, section, teacher, infoColor = '#ffffff', sectionBg = 'rgba(0,0,0,0.25)', style = {} }) {
+function NameTag({ studentName, grade, section, teacher, infoColor = '#ffffff', sectionBg = 'rgba(0,0,0,0.25)', style = {}, bgColor = '#000000', bgOpacity = 0 }) {
   if (!studentName && !grade && !section && !teacher) return null
   const gradeSection = [grade, section].filter(Boolean).join(' · ')
-  return (
-    <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', ...style }}>
+  const inner = (
+    <>
       {studentName && (
         <div style={{
           fontFamily: "'Nunito',sans-serif", fontSize: 12, fontWeight: 900,
@@ -68,6 +77,14 @@ function NameTag({ studentName, grade, section, teacher, infoColor = '#ffffff', 
           color: infoColor, fontStyle: 'italic', opacity: 0.85,
         }}>{teacher}</div>
       )}
+    </>
+  )
+  return (
+    <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', ...style }}>
+      {bgOpacity > 0
+        ? <div style={{ display: 'inline-block', background: hexToRgba(bgColor, bgOpacity), borderRadius: 8, padding: '4px 10px' }}>{inner}</div>
+        : inner
+      }
     </div>
   )
 }
@@ -169,7 +186,7 @@ function Watermark() {
    LABEL — bold die-cut banner style
 ───────────────────────────────────────── */
 const LabelCard = forwardRef(function LabelCard(
-  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark }, ref
+  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity }, ref
 ) {
   const { name, color, color2 } = subject
   const lines = name.split('\n')
@@ -194,15 +211,16 @@ const LabelCard = forwardRef(function LabelCard(
         return <div key={i} style={{ position: 'absolute', left: l, top: t, color: 'rgba(255,255,255,0.75)', fontSize: i === 4 ? 14 : 11, zIndex: 1, pointerEvents: 'none' }}>✦</div>
       })}
 
-      <div style={{
-        position: 'relative', zIndex: 2,
-        fontFamily: `'${font}',cursive`,
-        fontSize, color: fontColor,
-        textAlign: 'center', lineHeight: 1.1,
-        WebkitTextStroke: `2px ${strokeColor}`,
-        textShadow: `2px 4px 8px rgba(0,0,0,0.4)`,
-        letterSpacing: 1, whiteSpace: 'pre-line', padding: '0 4px',
-      }}>{name}</div>
+      <div style={{ position: 'relative', zIndex: 2, display: 'inline-block', background: hexToRgba(titleBgColor, titleBgOpacity), borderRadius: 8, padding: titleBgOpacity > 0 ? '2px 10px' : 0 }}>
+        <div style={{
+          fontFamily: `'${font}',cursive`,
+          fontSize, color: fontColor,
+          textAlign: 'center', lineHeight: 1.1,
+          WebkitTextStroke: `2px ${strokeColor}`,
+          textShadow: `2px 4px 8px rgba(0,0,0,0.4)`,
+          letterSpacing: 1, whiteSpace: 'pre-line', padding: '0 4px',
+        }}>{name}</div>
+      </div>
 
       {showEmoji && (
         <div style={{ position: 'relative', zIndex: 2, display: 'flex', gap: 8, marginTop: 8 }}>
@@ -210,7 +228,7 @@ const LabelCard = forwardRef(function LabelCard(
         </div>
       )}
 
-      <NameTag studentName={studentName} grade={grade} section={section} teacher={teacher} infoColor={infoColor} style={{ marginTop: 8 }} />
+      <NameTag studentName={studentName} grade={grade} section={section} teacher={teacher} infoColor={infoColor} style={{ marginTop: 8 }} bgColor={infoBgColor} bgOpacity={infoBgOpacity} />
       <BorderFrame style={borderStyle} color={color} isCircle={false} />
       {watermark && <Watermark />}
     </div>
@@ -221,7 +239,7 @@ const LabelCard = forwardRef(function LabelCard(
    BADGE — round sticker
 ───────────────────────────────────────── */
 const BadgeCard = forwardRef(function BadgeCard(
-  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark }, ref
+  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity }, ref
 ) {
   const { name, color, color2, icon } = subject
   const isLong = name.replace('\n', '').length > 9
@@ -241,28 +259,25 @@ const BadgeCard = forwardRef(function BadgeCard(
 
       {photo && <div style={{ position: 'relative', zIndex: 2, marginBottom: 4 }}><PhotoCircle photo={photo} icon={icon} size={72} /></div>}
 
-      <div style={{
-        position: 'relative', zIndex: 2,
-        background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(4px)',
-        borderRadius: 30, padding: '4px 14px', textAlign: 'center', marginBottom: 4,
-      }}>
-        <div style={{
-          fontFamily: `'${font}',cursive`,
-          fontSize: isLong ? 14 : photo ? 18 : 24,
-          color: fontColor,
-          WebkitTextStroke: `1px ${strokeColor}`,
-          textShadow: '0 2px 6px rgba(0,0,0,0.35)',
-          lineHeight: 1.15, whiteSpace: 'pre-line', letterSpacing: 0.5,
-        }}>{name}</div>
+      <div style={{ position: 'relative', zIndex: 2, marginBottom: 4 }}>
+        <div style={{ display: 'inline-block', background: hexToRgba(titleBgColor, titleBgOpacity), borderRadius: 8, padding: titleBgOpacity > 0 ? '2px 10px' : 0 }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(4px)',
+            borderRadius: 30, padding: '4px 14px', textAlign: 'center',
+          }}>
+            <div style={{
+              fontFamily: `'${font}',cursive`,
+              fontSize: isLong ? 14 : photo ? 18 : 24,
+              color: fontColor,
+              WebkitTextStroke: `1px ${strokeColor}`,
+              textShadow: '0 2px 6px rgba(0,0,0,0.35)',
+              lineHeight: 1.15, whiteSpace: 'pre-line', letterSpacing: 0.5,
+            }}>{name}</div>
+          </div>
+        </div>
       </div>
 
-      {(studentName || grade || section || teacher) && (
-        <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', padding: '0 8px' }}>
-          {studentName && <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 9, fontWeight: 900, color: infoColor, lineHeight: 1.3, textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>{studentName}</div>}
-          {(grade || section) && <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 8, fontWeight: 700, color: infoColor, opacity: 0.9 }}>{[grade, section].filter(Boolean).join(' · ')}</div>}
-          {teacher && <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 8, fontWeight: 600, color: infoColor, fontStyle: 'italic', opacity: 0.75 }}>{teacher}</div>}
-        </div>
-      )}
+      <NameTag studentName={studentName} grade={grade} section={section} teacher={teacher} infoColor={infoColor} sectionBg="rgba(0,0,0,0.2)" style={{ padding: '0 8px' }} bgColor={infoBgColor} bgOpacity={infoBgOpacity} />
 
       {showEmoji && <div style={{ position: 'absolute', top: 14, left: 14, fontSize: 13, opacity: 0.85, zIndex: 2 }}>{emojis[0]}</div>}
       {showEmoji && <div style={{ position: 'absolute', top: 14, right: 14, fontSize: 13, opacity: 0.85, zIndex: 2 }}>{emojis[1]}</div>}
@@ -279,7 +294,7 @@ const BadgeCard = forwardRef(function BadgeCard(
    BANNER — wide card with photo
 ───────────────────────────────────────── */
 const BannerCard = forwardRef(function BannerCard(
-  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark }, ref
+  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity }, ref
 ) {
   const { name, color, color2, icon } = subject
   const isLong = name.replace('\n', '').length > 10
@@ -307,20 +322,22 @@ const BannerCard = forwardRef(function BannerCard(
 
       {/* Text column */}
       <div style={{ flex: 1, zIndex: 2, padding: '12px 12px 12px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
-        <div style={{
-          fontFamily: `'${font}',cursive`,
-          fontSize: isLong ? 18 : 26,
-          color: fontColor,
-          WebkitTextStroke: `1.5px ${strokeColor}`,
-          textShadow: '0 2px 8px rgba(0,0,0,0.3)',
-          lineHeight: 1.1, whiteSpace: 'pre-line',
-        }}>{name}</div>
+        <div style={{ display: 'inline-block', background: hexToRgba(titleBgColor, titleBgOpacity), borderRadius: 8, padding: titleBgOpacity > 0 ? '2px 10px' : 0 }}>
+          <div style={{
+            fontFamily: `'${font}',cursive`,
+            fontSize: isLong ? 18 : 26,
+            color: fontColor,
+            WebkitTextStroke: `1.5px ${strokeColor}`,
+            textShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            lineHeight: 1.1, whiteSpace: 'pre-line',
+          }}>{name}</div>
+        </div>
         {showEmoji && (
           <div style={{ display: 'flex', gap: 5 }}>
             {emojis.map((e, i) => <span key={i} style={{ fontSize: 16 }}>{e}</span>)}
           </div>
         )}
-        <NameTag studentName={studentName} grade={grade} section={section} teacher={teacher} infoColor={infoColor} sectionBg="rgba(0,0,0,0.2)" style={{ textAlign: 'left' }} />
+        <NameTag studentName={studentName} grade={grade} section={section} teacher={teacher} infoColor={infoColor} sectionBg="rgba(0,0,0,0.2)" style={{ textAlign: 'left' }} bgColor={infoBgColor} bgOpacity={infoBgOpacity} />
       </div>
       <BorderFrame style={borderStyle} color={color} isCircle={false} />
       {watermark && <Watermark />}
@@ -332,7 +349,7 @@ const BannerCard = forwardRef(function BannerCard(
    PORTRAIT — tall card
 ───────────────────────────────────────── */
 const PortraitCard = forwardRef(function PortraitCard(
-  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark }, ref
+  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity }, ref
 ) {
   const { name, color, color2, icon } = subject
   const isLong = name.replace('\n', '').length > 10
@@ -351,14 +368,16 @@ const PortraitCard = forwardRef(function PortraitCard(
 
       {/* Subject name banner */}
       <div style={{ width: '100%', background: 'rgba(0,0,0,0.2)', padding: '12px 10px 10px', textAlign: 'center', position: 'relative', zIndex: 2, marginBottom: 10 }}>
-        <div style={{
-          fontFamily: `'${font}',cursive`,
-          fontSize: isLong ? 17 : 22,
-          color: fontColor,
-          WebkitTextStroke: `1.5px ${strokeColor}`,
-          textShadow: '0 2px 8px rgba(0,0,0,0.4)',
-          lineHeight: 1.15, whiteSpace: 'pre-line', letterSpacing: 0.5,
-        }}>{name}</div>
+        <div style={{ display: 'inline-block', background: hexToRgba(titleBgColor, titleBgOpacity), borderRadius: 8, padding: titleBgOpacity > 0 ? '2px 10px' : 0 }}>
+          <div style={{
+            fontFamily: `'${font}',cursive`,
+            fontSize: isLong ? 17 : 22,
+            color: fontColor,
+            WebkitTextStroke: `1.5px ${strokeColor}`,
+            textShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            lineHeight: 1.15, whiteSpace: 'pre-line', letterSpacing: 0.5,
+          }}>{name}</div>
+        </div>
       </div>
 
       <div style={{ position: 'relative', zIndex: 2, marginBottom: 8 }}>
@@ -375,6 +394,7 @@ const PortraitCard = forwardRef(function PortraitCard(
         studentName={studentName} grade={grade} section={section} teacher={teacher} infoColor={infoColor}
         sectionBg="rgba(0,0,0,0.22)"
         style={{ paddingHorizontal: 10, maxWidth: '90%' }}
+        bgColor={infoBgColor} bgOpacity={infoBgOpacity}
       />
 
       <div style={{ position: 'absolute', top: 70, right: 14, color: 'rgba(255,255,255,0.65)', fontSize: 11, zIndex: 2 }}>✦</div>

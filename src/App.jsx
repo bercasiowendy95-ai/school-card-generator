@@ -228,6 +228,10 @@ function mergeWithDefaults(saved) {
     watermark:   saved.watermark   ?? false,
     cardTopics:  saved.cardTopics  ?? {},
     printCols:   saved.printCols   ?? 3,
+    titleBgColor:   saved.titleBgColor   ?? '#000000',
+    titleBgOpacity: saved.titleBgOpacity ?? 0,
+    infoBgColor:    saved.infoBgColor    ?? '#000000',
+    infoBgOpacity:  saved.infoBgOpacity  ?? 0,
   }
 }
 
@@ -274,6 +278,12 @@ export default function App() {
   const [flippedCards, setFlippedCards] = useState({})                     // { [subjId]: bool }
   const [cardTopics, setCardTopics]     = useState(saved.cardTopics)       // { [subjId]: ['','','',''] }
 
+  // Feature: text backdrop
+  const [titleBgColor, setTitleBgColor]     = useState(saved.titleBgColor)
+  const [titleBgOpacity, setTitleBgOpacity] = useState(saved.titleBgOpacity)
+  const [infoBgColor, setInfoBgColor]       = useState(saved.infoBgColor)
+  const [infoBgOpacity, setInfoBgOpacity]   = useState(saved.infoBgOpacity)
+
   // Feature: watermark
   const [watermark, setWatermark]       = useState(saved.watermark)
 
@@ -299,6 +309,7 @@ export default function App() {
       selected, template, colorTheme, font, fontColor, infoColor,
       cardSize, showEmoji, showPhoto, customSubjects,
       cardColors, subjectFontColors, subjectInfoColors, borderStyle, watermark, cardTopics, printCols,
+      titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity,
     }
     localStorage.setItem(LS_KEY, JSON.stringify(data))
 
@@ -311,6 +322,7 @@ export default function App() {
     selected, template, colorTheme, font, fontColor, infoColor,
     cardSize, showEmoji, showPhoto, customSubjects,
     cardColors, subjectFontColors, subjectInfoColors, borderStyle, watermark, cardTopics, printCols,
+    titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity,
   ])
 
   const clearSavedData = () => {
@@ -323,6 +335,8 @@ export default function App() {
     setCustomSubjects(def.customSubjects); setCardColors(def.cardColors); setSubjectFontColors(def.subjectFontColors); setSubjectInfoColors(def.subjectInfoColors)
     setBorderStyle(def.borderStyle); setWatermark(def.watermark)
     setCardTopics(def.cardTopics); setPrintCols(def.printCols)
+    setTitleBgColor(def.titleBgColor); setTitleBgOpacity(def.titleBgOpacity)
+    setInfoBgColor(def.infoBgColor); setInfoBgOpacity(def.infoBgOpacity)
   }
 
   const readFile = useCallback((file, setter) => {
@@ -457,9 +471,9 @@ export default function App() {
             <input type="text" placeholder="e.g. Mrs. Santos" value={teacher} onChange={e => setTeacher(e.target.value)} style={{ marginBottom: 0 }} />
           </div>
 
-          {/* Card Design */}
+          {/* Panel A — Card Style */}
           <div className="panel">
-            <h2>🎨 Card Design</h2>
+            <h2>🎨 Card Style</h2>
 
             <label>Style</label>
             <div className="template-grid">
@@ -477,12 +491,6 @@ export default function App() {
               ))}
             </div>
 
-            <label style={{ marginTop: 10 }}>Global Card Background <span className="opt-tag">optional</span></label>
-            <UploadZone
-              value={globalCardBg} onSet={setGlobalCardBg} onClear={() => setGlobalCardBg(null)}
-              placeholder="🖼️" hint="Upload design — applies to all cards" compact
-            />
-
             <label style={{ marginTop: 6 }}>Font</label>
             <div className="font-grid">
               {FONTS.map(f => (
@@ -493,49 +501,6 @@ export default function App() {
               ))}
             </div>
 
-            <label style={{ marginTop: 8 }}>Subject Name Color</label>
-            <div className="color-swatches">
-              {FONT_COLORS.map(c => (
-                <button
-                  key={c.id}
-                  className={`color-swatch${fontColor === c.value ? ' active' : ''}`}
-                  style={{ background: c.value, border: c.value === '#ffffff' ? '1px solid #ddd' : 'none' }}
-                  title={c.label}
-                  onClick={() => setFontColor(c.value)}
-                />
-              ))}
-              <label className="color-swatch custom-color" title="Custom color">
-                <input type="color" value={fontColor} onChange={e => setFontColor(e.target.value)} />
-                <span>🎨</span>
-              </label>
-              <button className="auto-btn" title="Auto contrast based on first card" onClick={autoFontColor}>Auto</button>
-            </div>
-
-            <label style={{ marginTop: 8 }}>Student Info Color</label>
-            <div className="color-swatches">
-              {FONT_COLORS.map(c => (
-                <button
-                  key={c.id}
-                  className={`color-swatch${infoColor === c.value ? ' active' : ''}`}
-                  style={{ background: c.value, border: c.value === '#ffffff' ? '1px solid #ddd' : 'none' }}
-                  title={c.label}
-                  onClick={() => setInfoColor(c.value)}
-                />
-              ))}
-              <label className="color-swatch custom-color" title="Custom color">
-                <input type="color" value={infoColor} onChange={e => setInfoColor(e.target.value)} />
-                <span>🎨</span>
-              </label>
-              <button className="auto-btn" title="Auto contrast based on first card" onClick={autoInfoColor}>Auto</button>
-            </div>
-
-            <label style={{ marginTop: 8 }}>Color Tone</label>
-            <div className="tone-row">
-              {THEMES.map(th => (
-                <button key={th.id} className={`tone-btn${colorTheme === th.id ? ' active' : ''}`} onClick={() => setColorTheme(th.id)}>{th.name}</button>
-              ))}
-            </div>
-
             <label style={{ marginTop: 8 }}>Card Size</label>
             <div className="tone-row">
               {SIZES.map(s => (
@@ -543,14 +508,85 @@ export default function App() {
               ))}
             </div>
 
+            <label style={{ marginTop: 10 }}>Global Card Background <span className="opt-tag">optional</span></label>
+            <UploadZone
+              value={globalCardBg} onSet={setGlobalCardBg} onClear={() => setGlobalCardBg(null)}
+              placeholder="🖼️" hint="Upload design — applies to all cards" compact
+            />
+
             <label style={{ marginTop: 8 }}>Border Frame</label>
             <div className="tone-row" style={{ flexWrap: 'wrap' }}>
               {BORDER_STYLES.map(b => (
                 <button key={b.id} className={`tone-btn${borderStyle === b.id ? ' active' : ''}`} onClick={() => setBorderStyle(b.id)}>{b.name}</button>
               ))}
             </div>
+          </div>
 
-            <div className="toggle-row" style={{ marginTop: 12 }}>
+          {/* Panel B — Text & Colors */}
+          <div className="panel">
+            <h2>✏️ Text &amp; Colors</h2>
+
+            <label>Color Tone</label>
+            <div className="tone-row">
+              {THEMES.map(th => (
+                <button key={th.id} className={`tone-btn${colorTheme === th.id ? ' active' : ''}`} onClick={() => setColorTheme(th.id)}>{th.name}</button>
+              ))}
+            </div>
+
+            <div className="panel-section">
+              <label>Subject Name Color</label>
+              <div className="color-swatches">
+                {FONT_COLORS.map(c => (
+                  <button
+                    key={c.id}
+                    className={`color-swatch${fontColor === c.value ? ' active' : ''}`}
+                    style={{ background: c.value, border: c.value === '#ffffff' ? '1px solid #ddd' : 'none' }}
+                    title={c.label}
+                    onClick={() => setFontColor(c.value)}
+                  />
+                ))}
+                <label className="color-swatch custom-color" title="Custom color">
+                  <input type="color" value={fontColor} onChange={e => setFontColor(e.target.value)} />
+                  <span>🎨</span>
+                </label>
+                <button className="auto-btn" title="Auto contrast based on first card" onClick={autoFontColor}>Auto</button>
+              </div>
+              <label className="sub-label">Name Backdrop</label>
+              <div className="backdrop-row">
+                <input type="color" value={titleBgColor} onChange={e => setTitleBgColor(e.target.value)} />
+                <input type="range" min="0" max="90" value={Math.round(titleBgOpacity * 100)} onChange={e => setTitleBgOpacity(Number(e.target.value) / 100)} />
+                <span className="opacity-pct">{Math.round(titleBgOpacity * 100)}%</span>
+              </div>
+            </div>
+
+            <div className="panel-section">
+              <label>Student Info Color</label>
+              <div className="color-swatches">
+                {FONT_COLORS.map(c => (
+                  <button
+                    key={c.id}
+                    className={`color-swatch${infoColor === c.value ? ' active' : ''}`}
+                    style={{ background: c.value, border: c.value === '#ffffff' ? '1px solid #ddd' : 'none' }}
+                    title={c.label}
+                    onClick={() => setInfoColor(c.value)}
+                  />
+                ))}
+                <label className="color-swatch custom-color" title="Custom color">
+                  <input type="color" value={infoColor} onChange={e => setInfoColor(e.target.value)} />
+                  <span>🎨</span>
+                </label>
+                <button className="auto-btn" title="Auto contrast based on first card" onClick={autoInfoColor}>Auto</button>
+              </div>
+              <label className="sub-label">Info Backdrop</label>
+              <div className="backdrop-row">
+                <input type="color" value={infoBgColor} onChange={e => setInfoBgColor(e.target.value)} />
+                <input type="range" min="0" max="90" value={Math.round(infoBgOpacity * 100)} onChange={e => setInfoBgOpacity(Number(e.target.value) / 100)} />
+                <span className="opacity-pct">{Math.round(infoBgOpacity * 100)}%</span>
+              </div>
+            </div>
+
+            <label style={{ marginTop: 10 }}>Show / Hide</label>
+            <div className="toggle-row">
               <Toggle label="Show Emojis" value={showEmoji} onChange={setShowEmoji} />
               <Toggle label="Show Photo"  value={showPhoto}  onChange={setShowPhoto} />
               <Toggle label="Watermark"   value={watermark}  onChange={setWatermark} />
@@ -662,6 +698,10 @@ export default function App() {
                             emojis={activeEmojis}
                             borderStyle={borderStyle}
                             watermark={watermark}
+                            titleBgColor={titleBgColor}
+                            titleBgOpacity={titleBgOpacity}
+                            infoBgColor={infoBgColor}
+                            infoBgOpacity={infoBgOpacity}
                           />
                         </div>
                         {/* Back */}
