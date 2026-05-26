@@ -1,29 +1,22 @@
 import { useRef, useState } from 'react'
 import SubjectCard from './SubjectCard'
 
-const MARK_LEN = 8   // length of each cut line
-const MARK_GAP = 3   // gap between card edge and start of line
+const MARK_OFFSET = 12  // how far outside the card the border sits
 
 function CutMarks({ cellW, cellH }) {
-  const s = {
-    position: 'absolute', background: '#888',
-    WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact',
-  }
   return (
-    <>
-      {/* TL */}
-      <div style={{ ...s, top: -0.5,        left: -(MARK_GAP + MARK_LEN), width: MARK_LEN, height: 1 }} />
-      <div style={{ ...s, left: -0.5,       top:  -(MARK_GAP + MARK_LEN), width: 1, height: MARK_LEN }} />
-      {/* TR */}
-      <div style={{ ...s, top: -0.5,        left: cellW + MARK_GAP,        width: MARK_LEN, height: 1 }} />
-      <div style={{ ...s, left: cellW - 0.5,top:  -(MARK_GAP + MARK_LEN), width: 1, height: MARK_LEN }} />
-      {/* BL */}
-      <div style={{ ...s, top: cellH - 0.5, left: -(MARK_GAP + MARK_LEN), width: MARK_LEN, height: 1 }} />
-      <div style={{ ...s, left: -0.5,       top:  cellH + MARK_GAP,        width: 1, height: MARK_LEN }} />
-      {/* BR */}
-      <div style={{ ...s, top: cellH - 0.5, left: cellW + MARK_GAP,        width: MARK_LEN, height: 1 }} />
-      <div style={{ ...s, left: cellW - 0.5,top:  cellH + MARK_GAP,        width: 1, height: MARK_LEN }} />
-    </>
+    <div style={{
+      position: 'absolute',
+      top: -MARK_OFFSET,
+      left: -MARK_OFFSET,
+      width: cellW + MARK_OFFSET * 2,
+      height: cellH + MARK_OFFSET * 2,
+      border: '1.5px dashed #999',
+      borderRadius: 3,
+      pointerEvents: 'none',
+      WebkitPrintColorAdjust: 'exact',
+      printColorAdjust: 'exact',
+    }} />
   )
 }
 
@@ -69,7 +62,7 @@ export default function PrintSheet({
   const dims = CARD_DIMS[template] || CARD_DIMS.badge
 
   const A4_W = 754
-  const GAP = showCutMarks ? 26 : 12
+  const GAP = showCutMarks ? 36 : 12
   const cellW = (A4_W - GAP * (printCols - 1)) / printCols
   const scale = Math.min(cellW / dims.w, 1)
   const cellH = dims.h * scale
