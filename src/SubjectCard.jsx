@@ -1,7 +1,7 @@
 import { forwardRef } from 'react'
 
 const SubjectCard = forwardRef(function SubjectCard(
-  { subject, photo, cardBg, studentName, section, teacher, template, colorTheme, font, fontColor, showEmoji, emojis },
+  { subject, photo, cardBg, studentName, grade, section, teacher, template, colorTheme, font, fontColor, showEmoji, emojis },
   ref
 ) {
   const filterStyle = {
@@ -10,7 +10,7 @@ const SubjectCard = forwardRef(function SubjectCard(
     dark:   'saturate(1.1) brightness(0.82)',
   }[colorTheme] || 'none'
 
-  const props = { subject, photo, cardBg, studentName, section, teacher, font, fontColor, showEmoji, emojis, filterStyle }
+  const props = { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, showEmoji, emojis, filterStyle }
 
   if (template === 'label')    return <LabelCard    ref={ref} {...props} />
   if (template === 'banner')   return <BannerCard   ref={ref} {...props} />
@@ -38,8 +38,9 @@ function BgLayer({ cardBg, color, color2, gradient }) {
 }
 
 /* Name tag shown on cards — 3 layers: name / section / teacher */
-function NameTag({ studentName, section, teacher, sectionBg = 'rgba(0,0,0,0.25)', style = {} }) {
-  if (!studentName && !section && !teacher) return null
+function NameTag({ studentName, grade, section, teacher, sectionBg = 'rgba(0,0,0,0.25)', style = {} }) {
+  if (!studentName && !grade && !section && !teacher) return null
+  const gradeSection = [grade, section].filter(Boolean).join(' · ')
   return (
     <div style={{ position:'relative', zIndex:2, textAlign:'center', ...style }}>
       {studentName && (
@@ -49,14 +50,14 @@ function NameTag({ studentName, section, teacher, sectionBg = 'rgba(0,0,0,0.25)'
           lineHeight:1.3, marginBottom:3,
         }}>{studentName}</div>
       )}
-      {section && (
+      {gradeSection && (
         <div style={{
           display:'inline-block',
           background: sectionBg,
           borderRadius:20, padding:'2px 12px',
           fontFamily:"'Nunito',sans-serif", fontSize:10, fontWeight:900,
           color:'rgba(255,255,255,0.95)', marginBottom:3,
-        }}>Section: {section}</div>
+        }}>{gradeSection}</div>
       )}
       {teacher && (
         <div style={{
@@ -72,9 +73,9 @@ function NameTag({ studentName, section, teacher, sectionBg = 'rgba(0,0,0,0.25)'
    LABEL — bold die-cut banner style
 ───────────────────────────────────────── */
 const LabelCard = forwardRef(function LabelCard(
-  { subject, photo, cardBg, studentName, section, teacher, font, fontColor, showEmoji, emojis, filterStyle }, ref
+  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, showEmoji, emojis, filterStyle }, ref
 ) {
-  const { name, color, color2, icon } = subject
+  const { name, color, color2 } = subject
   const lines = name.split('\n')
   const isLong = lines.some(l => l.length > 9)
   const fontSize = isLong ? 32 : lines.length > 1 ? 36 : 52
@@ -113,7 +114,7 @@ const LabelCard = forwardRef(function LabelCard(
         </div>
       )}
 
-      <NameTag studentName={studentName} section={section} teacher={teacher} style={{ marginTop:8 }} />
+      <NameTag studentName={studentName} grade={grade} section={section} teacher={teacher} style={{ marginTop:8 }} />
     </div>
   )
 })
@@ -122,7 +123,7 @@ const LabelCard = forwardRef(function LabelCard(
    BADGE — round sticker
 ───────────────────────────────────────── */
 const BadgeCard = forwardRef(function BadgeCard(
-  { subject, photo, cardBg, studentName, section, teacher, font, fontColor, showEmoji, emojis, filterStyle }, ref
+  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, showEmoji, emojis, filterStyle }, ref
 ) {
   const { name, color, color2, icon } = subject
   const isLong = name.replace('\n','').length > 9
@@ -157,10 +158,10 @@ const BadgeCard = forwardRef(function BadgeCard(
         }}>{name}</div>
       </div>
 
-      {(studentName || section || teacher) && (
+      {(studentName || grade || section || teacher) && (
         <div style={{ position:'relative', zIndex:2, textAlign:'center', padding:'0 8px' }}>
           {studentName && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:9, fontWeight:900, color:'rgba(255,255,255,0.9)', lineHeight:1.3 }}>{studentName}</div>}
-          {section && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:8, fontWeight:700, color:'rgba(255,255,255,0.75)' }}>§ {section}</div>}
+          {(grade || section) && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:8, fontWeight:700, color:'rgba(255,255,255,0.75)' }}>{[grade,section].filter(Boolean).join(' · ')}</div>}
           {teacher && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:8, fontWeight:600, color:'rgba(255,255,255,0.65)', fontStyle:'italic' }}>👩‍🏫 {teacher}</div>}
         </div>
       )}
@@ -178,7 +179,7 @@ const BadgeCard = forwardRef(function BadgeCard(
    BANNER — wide card with photo
 ───────────────────────────────────────── */
 const BannerCard = forwardRef(function BannerCard(
-  { subject, photo, cardBg, studentName, section, teacher, font, fontColor, showEmoji, emojis, filterStyle }, ref
+  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, showEmoji, emojis, filterStyle }, ref
 ) {
   const { name, color, color2, icon } = subject
   const isLong = name.replace('\n','').length > 10
@@ -219,7 +220,7 @@ const BannerCard = forwardRef(function BannerCard(
             {emojis.map((e,i) => <span key={i} style={{ fontSize:16 }}>{e}</span>)}
           </div>
         )}
-        <NameTag studentName={studentName} section={section} teacher={teacher} sectionBg="rgba(0,0,0,0.2)" style={{ textAlign:'left' }} />
+        <NameTag studentName={studentName} grade={grade} section={section} teacher={teacher} sectionBg="rgba(0,0,0,0.2)" style={{ textAlign:'left' }} />
       </div>
     </div>
   )
@@ -229,7 +230,7 @@ const BannerCard = forwardRef(function BannerCard(
    PORTRAIT — tall card
 ───────────────────────────────────────── */
 const PortraitCard = forwardRef(function PortraitCard(
-  { subject, photo, cardBg, studentName, section, teacher, font, fontColor, showEmoji, emojis, filterStyle }, ref
+  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, showEmoji, emojis, filterStyle }, ref
 ) {
   const { name, color, color2, icon } = subject
   const isLong = name.replace('\n','').length > 10

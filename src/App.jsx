@@ -168,6 +168,7 @@ export default function App() {
   const [subjectBgs, setSubjectBgs]     = useState({})       // { subjId: base64 }
   const [subjectThemes, setSubjectThemes] = useState({})     // { subjId: themeIndex }
   const [studentName, setStudentName]   = useState('')
+  const [grade, setGrade]               = useState('')
   const [section, setSection]           = useState('')
   const [teacher, setTeacher]           = useState('')
   const [selected, setSelected]         = useState(SUBJECTS.map(s => s.id))
@@ -265,6 +266,8 @@ export default function App() {
             />
             <label>Student's Full Name</label>
             <input type="text" placeholder="e.g. Keiszyn Viatrix B. Pava" value={studentName} onChange={e => setStudentName(e.target.value)} />
+            <label>Grade</label>
+            <input type="text" placeholder="e.g. Grade 3" value={grade} onChange={e => setGrade(e.target.value)} />
             <label>Section</label>
             <input type="text" placeholder="e.g. Goodness" value={section} onChange={e => setSection(e.target.value)} />
             <label>Teacher</label>
@@ -405,6 +408,7 @@ export default function App() {
                         photo={showPhoto ? photo : null}
                         cardBg={cardBg}
                         studentName={studentName}
+                        grade={grade}
                         section={section}
                         teacher={teacher}
                         template={template}
