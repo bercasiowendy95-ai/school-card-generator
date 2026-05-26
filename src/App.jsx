@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import html2canvas from 'html2canvas'
 import SubjectCard from './SubjectCard'
-import CardBack from './CardBack'
 import PrintSheet from './PrintSheet'
 import './App.css'
 
@@ -226,7 +225,6 @@ function mergeWithDefaults(saved) {
     subjectInfoColors: saved.subjectInfoColors ?? {},
     borderStyle: saved.borderStyle ?? 'none',
     watermark:   saved.watermark   ?? false,
-    cardTopics:  saved.cardTopics  ?? {},
     printCols:   saved.printCols   ?? 3,
     titleBgColor:   saved.titleBgColor   ?? '#000000',
     titleBgOpacity: saved.titleBgOpacity ?? 0,
@@ -274,10 +272,6 @@ export default function App() {
   // Feature: border style
   const [borderStyle, setBorderStyle]   = useState(saved.borderStyle)
 
-  // Feature: card flip
-  const [flippedCards, setFlippedCards] = useState({})                     // { [subjId]: bool }
-  const [cardTopics, setCardTopics]     = useState(saved.cardTopics)       // { [subjId]: ['','','',''] }
-
   // Feature: text backdrop
   const [titleBgColor, setTitleBgColor]     = useState(saved.titleBgColor)
   const [titleBgOpacity, setTitleBgOpacity] = useState(saved.titleBgOpacity)
@@ -295,8 +289,7 @@ export default function App() {
   const [savedFlash, setSavedFlash]     = useState(false)
   const saveTimerRef = useRef(null)
 
-  const cardRefs    = useRef({})
-  const cardBackRefs = useRef({})
+  const cardRefs = useRef({})
 
   const allSubjects    = [...SUBJECTS, ...customSubjects]
   const activeSubjects = allSubjects.filter(s => selected.includes(s.id))
@@ -308,7 +301,7 @@ export default function App() {
       studentName, grade, section, teacher,
       selected, template, colorTheme, font, fontColor, infoColor,
       cardSize, showEmoji, showPhoto, customSubjects,
-      cardColors, subjectFontColors, subjectInfoColors, borderStyle, watermark, cardTopics, printCols,
+      cardColors, subjectFontColors, subjectInfoColors, borderStyle, watermark, printCols,
       titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity,
     }
     localStorage.setItem(LS_KEY, JSON.stringify(data))
@@ -321,7 +314,7 @@ export default function App() {
     studentName, grade, section, teacher,
     selected, template, colorTheme, font, fontColor, infoColor,
     cardSize, showEmoji, showPhoto, customSubjects,
-    cardColors, subjectFontColors, subjectInfoColors, borderStyle, watermark, cardTopics, printCols,
+    cardColors, subjectFontColors, subjectInfoColors, borderStyle, watermark, printCols,
     titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity,
   ])
 
@@ -334,7 +327,7 @@ export default function App() {
     setCardSize(def.cardSize); setShowEmoji(def.showEmoji); setShowPhoto(def.showPhoto)
     setCustomSubjects(def.customSubjects); setCardColors(def.cardColors); setSubjectFontColors(def.subjectFontColors); setSubjectInfoColors(def.subjectInfoColors)
     setBorderStyle(def.borderStyle); setWatermark(def.watermark)
-    setCardTopics(def.cardTopics); setPrintCols(def.printCols)
+    setPrintCols(def.printCols)
     setTitleBgColor(def.titleBgColor); setTitleBgOpacity(def.titleBgOpacity)
     setInfoBgColor(def.infoBgColor); setInfoBgOpacity(def.infoBgOpacity)
   }
@@ -385,11 +378,6 @@ export default function App() {
     setCardColors(prev => { const n = { ...prev }; delete n[subjId]; return n })
   }
 
-  // Card flip
-  const toggleFlip = (subjId) => {
-    setFlippedCards(prev => ({ ...prev, [subjId]: !prev[subjId] }))
-  }
-
   // Auto-contrast
   const autoFontColor = () => {
     if (activeSubjects.length === 0) return
@@ -407,29 +395,14 @@ export default function App() {
   }
 
   const downloadCard = async subjId => {
-    const el = flippedCards[subjId] ? cardBackRefs.current[subjId] : cardRefs.current[subjId]
+    const el = cardRefs.current[subjId]
     if (!el) return
     setDownloading(subjId)
     try {
       const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, logging: false })
       const link = document.createElement('a')
       const subj = allSubjects.find(s => s.id === subjId)
-      link.download = `${subj?.name.replace(/\n/g, '-') || subjId}${flippedCards[subjId] ? '-back' : ''}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
-    } catch(e) { console.error(e) }
-    setDownloading(null)
-  }
-
-  const downloadBack = async subjId => {
-    const el = cardBackRefs.current[subjId]
-    if (!el) return
-    setDownloading(subjId + '_back')
-    try {
-      const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, logging: false })
-      const link = document.createElement('a')
-      const subj = allSubjects.find(s => s.id === subjId)
-      link.download = `${subj?.name.replace(/\n/g, '-') || subjId}-back.png`
+      link.download = `${subj?.name.replace(/\n/g, '-') || subjId}.png`
       link.href = canvas.toDataURL('image/png')
       link.click()
     } catch(e) { console.error(e) }
@@ -661,9 +634,8 @@ export default function App() {
               {activeSubjects.map(subj => {
                 const themes       = subj.themes || [{ emojis: ['⭐','📌','✏️'] }]
                 const activeEmojis = themes[0].emojis
-                const cardBg           = subjectBgs[subj.id] || globalCardBg
-                const isFlipped        = !!flippedCards[subj.id]
-                const customColor      = cardColors[subj.id]
+                const cardBg      = subjectBgs[subj.id] || globalCardBg
+                const customColor = cardColors[subj.id]
                 const subjFontColor    = subjectFontColors[subj.id] || fontColor
                 const subjInfoColor    = subjectInfoColors[subj.id] || infoColor
                 const subjForCard  = customColor
@@ -672,56 +644,30 @@ export default function App() {
 
                 return (
                   <div key={subj.id} className="card-wrapper">
-                    {/* 3D flip container */}
-                    <div
-                      className={`flip-container${isFlipped ? ' flipped' : ''}`}
-                      style={{ transform: `scale(${scale})`, transformOrigin: 'top center', transition: 'transform 0.2s' }}
-                    >
-                      <div className="flip-inner">
-                        {/* Front */}
-                        <div className="flip-front">
-                          <SubjectCard
-                            ref={el => cardRefs.current[subj.id] = el}
-                            subject={subjForCard}
-                            photo={showPhoto ? photo : null}
-                            cardBg={cardBg}
-                            studentName={studentName}
-                            grade={grade}
-                            section={section}
-                            teacher={teacher}
-                            template={template}
-                            colorTheme={colorTheme}
-                            font={font}
-                            fontColor={subjFontColor}
-                            infoColor={subjInfoColor}
-                            showEmoji={showEmoji}
-                            emojis={activeEmojis}
-                            borderStyle={borderStyle}
-                            watermark={watermark}
-                            titleBgColor={titleBgColor}
-                            titleBgOpacity={titleBgOpacity}
-                            infoBgColor={infoBgColor}
-                            infoBgOpacity={infoBgOpacity}
-                          />
-                        </div>
-                        {/* Back */}
-                        <div className="flip-back">
-                          <CardBack
-                            ref={el => cardBackRefs.current[subj.id] = el}
-                            subject={subjForCard}
-                            studentName={studentName}
-                            grade={grade}
-                            section={section}
-                            teacher={teacher}
-                            template={template}
-                            font={font}
-                            fontColor={subjFontColor}
-                            infoColor={subjInfoColor}
-                            topics={cardTopics[subj.id] || ['','','','']}
-                            onTopicsChange={topics => setCardTopics(prev => ({ ...prev, [subj.id]: topics }))}
-                          />
-                        </div>
-                      </div>
+                    <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center', transition: 'transform 0.2s' }}>
+                      <SubjectCard
+                        ref={el => cardRefs.current[subj.id] = el}
+                        subject={subjForCard}
+                        photo={showPhoto ? photo : null}
+                        cardBg={cardBg}
+                        studentName={studentName}
+                        grade={grade}
+                        section={section}
+                        teacher={teacher}
+                        template={template}
+                        colorTheme={colorTheme}
+                        font={font}
+                        fontColor={subjFontColor}
+                        infoColor={subjInfoColor}
+                        showEmoji={showEmoji}
+                        emojis={activeEmojis}
+                        borderStyle={borderStyle}
+                        watermark={watermark}
+                        titleBgColor={titleBgColor}
+                        titleBgOpacity={titleBgOpacity}
+                        infoBgColor={infoBgColor}
+                        infoBgOpacity={infoBgOpacity}
+                      />
                     </div>
                     <div style={{ height: getScaleOffset(template, scale) }} />
 
@@ -761,22 +707,10 @@ export default function App() {
                           onClick={() => { setOpenInfoPicker(openInfoPicker === subj.id ? null : subj.id); setOpenColorPicker(null); setOpenFontPicker(null) }}
                         />
 
-                        {/* Flip button */}
-                        <button className="dl-btn" onClick={() => toggleFlip(subj.id)}>
-                          {isFlipped ? '↩ Front' : '↩ Back'}
-                        </button>
-
                         {/* Download */}
                         <button className="dl-btn" onClick={() => downloadCard(subj.id)} disabled={downloading === subj.id}>
                           {downloading === subj.id ? '⏳' : '⬇️'} Save
                         </button>
-
-                        {/* Save back */}
-                        {isFlipped && (
-                          <button className="dl-btn" onClick={() => downloadBack(subj.id)} disabled={downloading === subj.id + '_back'}>
-                            {downloading === subj.id + '_back' ? '⏳' : '⬇️'} Back
-                          </button>
-                        )}
                       </div>
 
                       {/* Inline subject font color picker */}

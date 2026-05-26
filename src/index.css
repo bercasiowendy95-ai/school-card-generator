@@ -332,27 +332,6 @@ input[type="text"]:focus { border-color: #7c5cbf; background: #faf7ff; }
   cursor: pointer; padding: 0; background: none;
 }
 
-/* ── Card flip ── */
-.flip-container {
-  perspective: 1000px;
-}
-.flip-inner {
-  position: relative;
-  transform-style: preserve-3d;
-  transition: transform 0.5s ease;
-}
-.flip-container.flipped .flip-inner {
-  transform: rotateY(180deg);
-}
-.flip-front, .flip-back {
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-.flip-back {
-  position: absolute;
-  top: 0; left: 0;
-  transform: rotateY(180deg);
-}
 
 /* Remove btn in upload zone */
 .remove-btn {
