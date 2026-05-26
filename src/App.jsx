@@ -493,7 +493,7 @@ export default function App() {
               ))}
             </div>
 
-            <label style={{ marginTop: 8 }}>Font Color</label>
+            <label style={{ marginTop: 8 }}>Subject Name Color</label>
             <div className="color-swatches">
               {FONT_COLORS.map(c => (
                 <button
@@ -511,7 +511,7 @@ export default function App() {
               <button className="auto-btn" title="Auto contrast based on first card" onClick={autoFontColor}>Auto</button>
             </div>
 
-            <label style={{ marginTop: 8 }}>Name / Grade / Teacher Color</label>
+            <label style={{ marginTop: 8 }}>Student Info Color</label>
             <div className="color-swatches">
               {FONT_COLORS.map(c => (
                 <button
