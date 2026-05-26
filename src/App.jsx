@@ -237,15 +237,18 @@ function mergeWithDefaults(saved) {
     photoZoom: saved.photoZoom ?? 1,
     photoX:    saved.photoX    ?? 50,
     photoY:    saved.photoY    ?? 50,
+    photo:        saved.photo        ?? null,
+    globalCardBg: saved.globalCardBg ?? null,
+    subjectBgs:   saved.subjectBgs   ?? {},
   }
 }
 
 export default function App() {
   const saved = mergeWithDefaults(loadSaved())
 
-  const [photo, setPhoto]               = useState(null)
-  const [globalCardBg, setGlobalCardBg] = useState(null)
-  const [subjectBgs, setSubjectBgs]     = useState({})
+  const [photo, setPhoto]               = useState(saved.photo)
+  const [globalCardBg, setGlobalCardBg] = useState(saved.globalCardBg)
+  const [subjectBgs, setSubjectBgs]     = useState(saved.subjectBgs)
 
   const [studentName, setStudentName]   = useState(saved.studentName)
   const [grade, setGrade]               = useState(saved.grade)
@@ -323,8 +326,14 @@ export default function App() {
       titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity,
       subjectTitleBgColors, subjectTitleBgOpacities, subjectInfoBgColors, subjectInfoBgOpacities,
       photoZoom, photoX, photoY,
+      photo, globalCardBg, subjectBgs,
     }
-    localStorage.setItem(LS_KEY, JSON.stringify(data))
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(data))
+    } catch {
+      // quota exceeded — save without images
+      try { localStorage.setItem(LS_KEY, JSON.stringify({ ...data, photo: null, globalCardBg: null, subjectBgs: {} })) } catch {}
+    }
 
     // flash indicator
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
@@ -338,6 +347,7 @@ export default function App() {
     titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity,
     subjectTitleBgColors, subjectTitleBgOpacities, subjectInfoBgColors, subjectInfoBgOpacities,
     photoZoom, photoX, photoY,
+    photo, globalCardBg, subjectBgs,
   ])
 
   const clearSavedData = () => {
@@ -355,6 +365,7 @@ export default function App() {
     setSubjectTitleBgColors(def.subjectTitleBgColors); setSubjectTitleBgOpacities(def.subjectTitleBgOpacities)
     setSubjectInfoBgColors(def.subjectInfoBgColors); setSubjectInfoBgOpacities(def.subjectInfoBgOpacities)
     setPhotoZoom(def.photoZoom); setPhotoX(def.photoX); setPhotoY(def.photoY)
+    setPhoto(null); setGlobalCardBg(null); setSubjectBgs({})
   }
 
   const readFile = useCallback((file, setter) => {
