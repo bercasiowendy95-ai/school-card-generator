@@ -474,18 +474,22 @@ input[type="text"]:focus { border-color: #7c5cbf; background: #faf7ff; }
 
 /* ── @media print ── */
 @media print {
-  body > * { display: none !important; }
-  #print-area {
-    display: block !important;
-    position: fixed;
-    inset: 0;
-    background: #fff;
-    padding: 10mm;
-    box-shadow: none;
+  /* Hide everything, then reveal only the print area */
+  body * { visibility: hidden; }
+
+  #print-area,
+  #print-area * {
+    visibility: visible;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
-  .print-modal-overlay { display: block !important; background: none !important; position: static !important; padding: 0 !important; }
-  .print-modal { display: block !important; border-radius: 0 !important; box-shadow: none !important; width: 100% !important; }
-  .print-modal-header { display: none !important; }
-  .print-area-scroll { padding: 0 !important; background: none !important; overflow: visible !important; }
-  .print-area { padding: 0 !important; display: block !important; }
+
+  #print-area {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    padding: 8mm;
+    background: #fff;
+    overflow: visible;
+  }
 }
