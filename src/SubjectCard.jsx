@@ -6,8 +6,8 @@ const SubjectCard = forwardRef(function SubjectCard(
 ) {
   const filterStyle = {
     vivid:  'saturate(1.2)',
-    pastel: 'saturate(0.55) brightness(1.18)',
-    dark:   'saturate(1.1) brightness(0.82)',
+    pastel: 'saturate(0.78) brightness(1.08)',
+    dark:   'saturate(1.45) contrast(1.08)',
   }[colorTheme] || 'none'
 
   const props = {
