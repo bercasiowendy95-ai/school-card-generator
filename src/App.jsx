@@ -1,101 +1,53 @@
 import { useState, useRef, useCallback } from 'react'
 import html2canvas from 'html2canvas'
-import CardPreview from './CardPreview'
+import SubjectCard from './SubjectCard'
 import './App.css'
 
-const DEFAULT_SUBJECTS = [
-  { id: 'english',  name: 'English',  icon: '📚', color: '#f5a623' },
-  { id: 'science',  name: 'Science',  icon: '🔬', color: '#7ed321' },
-  { id: 'filipino', name: 'Filipino', icon: '🇵🇭', color: '#e91e63' },
-  { id: 'math',     name: 'Math',     icon: '🔢', color: '#2196f3' },
-  { id: 'araling',  name: 'Araling Panlipunan', icon: '🌏', color: '#9c27b0' },
-  { id: 'mapeh',    name: 'MAPEH',    icon: '🎵', color: '#ff5722' },
-  { id: 'tle',      name: 'TLE',      icon: '🔧', color: '#00bcd4' },
-  { id: 'values',   name: 'Values Ed', icon: '❤️', color: '#f44336' },
+export const SUBJECTS = [
+  { id: 'math',       name: 'Math',             icon: '📐', color: '#ff6b35', color2: '#ff4500', emojis: ['➕','✖️','📏'] },
+  { id: 'english',    name: 'English',           icon: '📖', color: '#00b4d8', color2: '#0077b6', emojis: ['✏️','📚','🔤'] },
+  { id: 'filipino',   name: 'Filipino',          icon: '🇵🇭', color: '#e63946', color2: '#b5121b', emojis: ['🇵🇭','📜','✍️'] },
+  { id: 'science',    name: 'Science',           icon: '🔬', color: '#06d6a0', color2: '#028a60', emojis: ['💡','⚗️','🧪'] },
+  { id: 'mapeh',      name: 'MAPEH',             icon: '🎵', color: '#8338ec', color2: '#5a00cc', emojis: ['⚽','🎨','🎶'] },
+  { id: 'gmrc',       name: 'GMRC',              icon: '❤️', color: '#ff006e', color2: '#c8005a', emojis: ['🤝','😊','🌟'] },
+  { id: 'ap',         name: 'AP',                icon: '🌏', color: '#fb5607', color2: '#c43e00', emojis: ['🗺️','🏛️','📊'] },
+  { id: 'epp',        name: 'EPP',               icon: '🌱', color: '#2dc653', color2: '#1a8c35', emojis: ['🔧','🍳','✂️'] },
+  { id: 'esp',        name: 'E.S.P.',            icon: '✨', color: '#ff9f1c', color2: '#e07800', emojis: ['🙏','💝','🌸'] },
+  { id: 'tle',        name: 'T.L.E.',            icon: '⚙️', color: '#3a86ff', color2: '#1a5fd4', emojis: ['💼','🌿','🔨'] },
+  { id: 'values',     name: 'Values Ed',         icon: '🕊️', color: '#f72585', color2: '#b5006a', emojis: ['💖','🌈','⭐'] },
+  { id: 'assignment', name: 'Assignment\nNotebook', icon: '📓', color: '#7209b7', color2: '#4a0080', emojis: ['📝','✏️','📋'] },
+  { id: 'writing',    name: 'Writing\nNotebook', icon: '🖊️', color: '#4361ee', color2: '#2940c4', emojis: ['📒','🖊️','✍️'] },
+  { id: 'reading',    name: 'Reading',           icon: '📰', color: '#e9c46a', color2: '#c49a20', emojis: ['📰','👁️','📖'] },
+]
+
+const TEMPLATES = [
+  { id: 'badge',    name: 'Badge',    desc: 'Round sticker style' },
+  { id: 'banner',   name: 'Banner',   desc: 'Wide card with photo' },
+  { id: 'portrait', name: 'Portrait', desc: 'Tall label card' },
 ]
 
 const THEMES = [
-  {
-    id: 'rainbow',
-    name: 'Rainbow',
-    colors: ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff'],
-    banner: '#f8f0ff',
-    sectionBg: '#7c5cbf',
-  },
-  {
-    id: 'pastel',
-    name: 'Pastel',
-    colors: ['#ffb3ba','#ffdfba','#ffffba','#baffc9'],
-    banner: '#fff9f0',
-    sectionBg: '#f0a0c0',
-  },
-  {
-    id: 'ocean',
-    name: 'Ocean',
-    colors: ['#0077b6','#00b4d8','#90e0ef','#023e8a'],
-    banner: '#e8f8ff',
-    sectionBg: '#0077b6',
-  },
-  {
-    id: 'forest',
-    name: 'Forest',
-    colors: ['#2d6a4f','#40916c','#74c69d','#1b4332'],
-    banner: '#f0fff4',
-    sectionBg: '#2d6a4f',
-  },
-  {
-    id: 'candy',
-    name: 'Candy',
-    colors: ['#ff006e','#fb5607','#ffbe0b','#8338ec'],
-    banner: '#fff0f8',
-    sectionBg: '#8338ec',
-  },
-  {
-    id: 'space',
-    name: 'Space',
-    colors: ['#10002b','#240046','#3c096c','#5a189a'],
-    banner: '#f5f0ff',
-    sectionBg: '#3c096c',
-  },
-  {
-    id: 'sunset',
-    name: 'Sunset',
-    colors: ['#f72585','#b5179e','#7209b7','#480ca8'],
-    banner: '#fff5fb',
-    sectionBg: '#b5179e',
-  },
-  {
-    id: 'earth',
-    name: 'Earth',
-    colors: ['#cb4b16','#b58900','#268bd2','#2aa198'],
-    banner: '#fdf6e3',
-    sectionBg: '#657b83',
-  },
-]
-
-const CARD_LAYOUTS = [
-  { id: 'grid', name: '2×2 Grid', icon: '⊞' },
-  { id: 'row',  name: 'Strip Row', icon: '▬' },
-]
-
-const SUBJECT_ICON_COLORS = [
-  '#ff6b6b','#ffd93d','#6bcb77','#4d96ff',
-  '#c77dff','#ff9f1c','#2ec4b6','#e63946',
+  { id: 'vivid',   name: 'Vivid',   style: 'saturate(1.2)' },
+  { id: 'pastel',  name: 'Pastel',  style: 'saturate(0.6) brightness(1.15)' },
+  { id: 'dark',    name: 'Bold',    style: 'saturate(1.1) brightness(0.85)' },
 ]
 
 export default function App() {
   const [photo, setPhoto] = useState(null)
   const [studentName, setStudentName] = useState('')
   const [section, setSection] = useState('')
-  const [selectedSubjects, setSelectedSubjects] = useState(['english','science','filipino','math'])
-  const [subjects, setSubjects] = useState(DEFAULT_SUBJECTS)
-  const [theme, setTheme] = useState(THEMES[0])
-  const [cardLayout, setCardLayout] = useState('grid')
-  const [customSubject, setCustomSubject] = useState('')
+  const [selected, setSelected] = useState(SUBJECTS.map(s => s.id))
+  const [template, setTemplate] = useState('badge')
+  const [colorTheme, setColorTheme] = useState('vivid')
+  const [customName, setCustomName] = useState('')
+  const [customSubjects, setCustomSubjects] = useState([])
   const [dragOver, setDragOver] = useState(false)
-  const [downloading, setDownloading] = useState(false)
-  const cardRef = useRef(null)
-  const fileInputRef = useRef(null)
+  const [downloading, setDownloading] = useState(null)
+
+  const cardRefs = useRef({})
+
+  const allSubjects = [...SUBJECTS, ...customSubjects]
+  const activeSubjects = allSubjects.filter(s => selected.includes(s.id))
 
   const handlePhotoChange = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) return
@@ -104,199 +56,176 @@ export default function App() {
     reader.readAsDataURL(file)
   }, [])
 
-  const onFileInput = (e) => handlePhotoChange(e.target.files[0])
-
-  const onDrop = (e) => {
-    e.preventDefault()
-    setDragOver(false)
-    handlePhotoChange(e.dataTransfer.files[0])
-  }
-
   const toggleSubject = (id) => {
-    setSelectedSubjects(prev =>
-      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
-    )
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
-  const addCustomSubject = () => {
-    const name = customSubject.trim()
+  const selectAll = () => setSelected(allSubjects.map(s => s.id))
+  const clearAll = () => setSelected([])
+
+  const addCustom = () => {
+    const name = customName.trim()
     if (!name) return
+    const COLORS = ['#e76f51','#264653','#2a9d8f','#e9c46a','#f4a261','#457b9d','#a8dadc']
     const id = 'custom_' + Date.now()
-    const colorIdx = subjects.length % SUBJECT_ICON_COLORS.length
-    setSubjects(prev => [...prev, { id, name, icon: '⭐', color: SUBJECT_ICON_COLORS[colorIdx] }])
-    setSelectedSubjects(prev => [...prev, id])
-    setCustomSubject('')
+    const color = COLORS[customSubjects.length % COLORS.length]
+    const newSubj = { id, name, icon: '⭐', color, color2: color, emojis: ['⭐','📌','✏️'] }
+    setCustomSubjects(prev => [...prev, newSubj])
+    setSelected(prev => [...prev, id])
+    setCustomName('')
   }
 
-  const handleDownload = async () => {
-    if (!cardRef.current) return
-    setDownloading(true)
+  const downloadCard = async (subjId) => {
+    const el = cardRefs.current[subjId]
+    if (!el) return
+    setDownloading(subjId)
     try {
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-        logging: false,
-      })
+      const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, logging: false })
       const link = document.createElement('a')
-      link.download = `${studentName || 'school-card'}-card.png`
+      const subj = allSubjects.find(s => s.id === subjId)
+      link.download = `${subj?.name.replace(/\n/g, '-') || subjId}-card.png`
       link.href = canvas.toDataURL('image/png')
       link.click()
-    } catch (err) {
-      console.error(err)
-      alert('Could not generate image. Please try again.')
-    }
-    setDownloading(false)
+    } catch(e) { console.error(e) }
+    setDownloading(null)
   }
 
-  const activeSubjects = subjects.filter(s => selectedSubjects.includes(s.id))
+  const downloadAll = async () => {
+    for (const s of activeSubjects) {
+      await downloadCard(s.id)
+      await new Promise(r => setTimeout(r, 300))
+    }
+  }
 
   return (
     <div className="app">
       <div className="header">
         <h1>🎒 School Card Maker</h1>
-        <p>Create a personalized school card for your child — pick subjects, upload a photo, and download!</p>
+        <p>Generate personalized subject cards for your child — one card per subject!</p>
       </div>
 
-      <div className="layout">
-        {/* ─── Left: Controls ─── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="sidebar-layout">
+        {/* ─── Sidebar Controls ─── */}
+        <aside className="sidebar">
 
-          {/* Photo + Name */}
+          {/* Photo + Info */}
           <div className="panel">
             <h2>📸 Student Info</h2>
-
             <div
               className={`upload-zone${dragOver ? ' drag-over' : ''}`}
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
               onDragLeave={() => setDragOver(false)}
-              onDrop={onDrop}
+              onDrop={e => { e.preventDefault(); setDragOver(false); handlePhotoChange(e.dataTransfer.files[0]) }}
             >
-              <input
-                type="file"
-                accept="image/*"
-                ref={fileInputRef}
-                onChange={onFileInput}
-              />
+              <input type="file" accept="image/*" onChange={e => handlePhotoChange(e.target.files[0])} />
               {photo ? (
-                <>
-                  <img src={photo} className="preview-img" alt="Student" />
-                  <p>Click or drag to change photo</p>
-                </>
+                <><img src={photo} className="preview-img" alt="Student" /><p>Click to change photo</p></>
               ) : (
-                <>
-                  <span className="upload-icon">🖼️</span>
-                  <p>Click or drag &amp; drop a photo here</p>
-                </>
+                <><span className="upload-icon">🖼️</span><p>Click or drag photo here</p></>
               )}
             </div>
-            <p className="upload-hint">JPG, PNG, WEBP accepted</p>
-
             <label>Student's Full Name</label>
-            <input
-              type="text"
-              placeholder="e.g. Keiszyn Viatrix B. Pava"
-              value={studentName}
-              onChange={e => setStudentName(e.target.value)}
-            />
-
+            <input type="text" placeholder="e.g. Keiszyn Viatrix B. Pava" value={studentName} onChange={e => setStudentName(e.target.value)} />
             <label>Section / Class</label>
-            <input
-              type="text"
-              placeholder="e.g. Goodness"
-              value={section}
-              onChange={e => setSection(e.target.value)}
-              style={{ marginBottom: 0 }}
-            />
+            <input type="text" placeholder="e.g. Goodness" value={section} onChange={e => setSection(e.target.value)} style={{ marginBottom: 0 }} />
           </div>
 
-          {/* Subjects */}
+          {/* Template */}
           <div className="panel">
-            <h2>📖 Subjects</h2>
-            <div className="subject-grid">
-              {subjects.map((subj, i) => (
-                <div
-                  key={subj.id}
-                  className={`subject-item${selectedSubjects.includes(subj.id) ? ' selected' : ''}`}
-                  style={{ background: subj.color }}
-                  onClick={() => toggleSubject(subj.id)}
-                >
-                  <span className="subj-icon">{subj.icon}</span>
-                  {subj.name}
-                </div>
-              ))}
-            </div>
-            <div className="add-subject">
-              <input
-                type="text"
-                placeholder="Add custom subject..."
-                value={customSubject}
-                onChange={e => setCustomSubject(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addCustomSubject()}
-              />
-              <button className="btn-sm" onClick={addCustomSubject}>+ Add</button>
-            </div>
-          </div>
-
-          {/* Theme */}
-          <div className="panel">
-            <h2>🎨 Color Theme</h2>
-            <div className="theme-grid">
-              {THEMES.map(t => (
-                <div
-                  key={t.id}
-                  className={`theme-item${theme.id === t.id ? ' active' : ''}`}
-                  onClick={() => setTheme(t)}
-                >
-                  <div className="theme-swatch">
-                    {t.colors.map((c, i) => <span key={i} style={{ background: c }} />)}
+            <h2>🎨 Card Style</h2>
+            <div className="template-grid">
+              {TEMPLATES.map(t => (
+                <div key={t.id} className={`template-item${template === t.id ? ' active' : ''}`} onClick={() => setTemplate(t.id)}>
+                  <div className="template-preview">
+                    {t.id === 'badge' && <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#ff6b35,#ff006e)', margin: '0 auto' }} />}
+                    {t.id === 'banner' && <div style={{ width: 52, height: 28, borderRadius: 6, background: 'linear-gradient(135deg,#00b4d8,#8338ec)' }} />}
+                    {t.id === 'portrait' && <div style={{ width: 30, height: 42, borderRadius: 6, background: 'linear-gradient(170deg,#06d6a0,#3a86ff)' }} />}
                   </div>
-                  {t.name}
+                  <div className="template-name">{t.name}</div>
+                  <div className="template-desc">{t.desc}</div>
                 </div>
               ))}
             </div>
 
-            <hr className="section-divider" />
-            <h2 style={{ marginBottom: 10 }}>🗂️ Card Layout</h2>
-            <div className="layout-toggle">
-              {CARD_LAYOUTS.map(l => (
-                <button
-                  key={l.id}
-                  className={`layout-btn${cardLayout === l.id ? ' active' : ''}`}
-                  onClick={() => setCardLayout(l.id)}
-                >
-                  {l.icon} {l.name}
+            <label style={{ marginTop: 12 }}>Color Tone</label>
+            <div className="tone-row">
+              {THEMES.map(th => (
+                <button key={th.id} className={`tone-btn${colorTheme === th.id ? ' active' : ''}`} onClick={() => setColorTheme(th.id)}>
+                  {th.name}
                 </button>
               ))}
             </div>
           </div>
 
-        </div>
-
-        {/* ─── Right: Preview ─── */}
-        <div className="preview-panel">
-          <h2>👁️ Live Preview</h2>
-          <CardPreview
-            ref={cardRef}
-            photo={photo}
-            studentName={studentName}
-            section={section}
-            activeSubjects={activeSubjects}
-            theme={theme}
-            cardLayout={cardLayout}
-          />
-          <div className="actions">
-            <button className="btn-primary" onClick={handleDownload} disabled={downloading}>
-              {downloading && <span className="spinner" />}
-              {downloading ? 'Generating...' : '⬇️ Download Card'}
-            </button>
-            <button className="btn-secondary" onClick={() => { setPhoto(null); setStudentName(''); setSection('') }}>
-              Reset
-            </button>
+          {/* Subjects */}
+          <div className="panel">
+            <h2>📖 Subjects</h2>
+            <div className="subj-actions">
+              <button className="btn-tiny" onClick={selectAll}>Select All</button>
+              <button className="btn-tiny outline" onClick={clearAll}>Clear</button>
+              <span className="subj-count">{selected.length} selected</span>
+            </div>
+            <div className="subject-list">
+              {allSubjects.map(s => (
+                <label key={s.id} className={`subj-check${selected.includes(s.id) ? ' checked' : ''}`}>
+                  <input type="checkbox" checked={selected.includes(s.id)} onChange={() => toggleSubject(s.id)} />
+                  <span className="subj-dot" style={{ background: s.color }} />
+                  <span className="subj-icon-sm">{s.icon}</span>
+                  {s.name.replace('\n', ' ')}
+                </label>
+              ))}
+            </div>
+            <div className="add-subject" style={{ marginTop: 10 }}>
+              <input type="text" placeholder="Add custom subject..." value={customName} onChange={e => setCustomName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCustom()} />
+              <button className="btn-sm" onClick={addCustom}>+ Add</button>
+            </div>
           </div>
-          <p className="download-hint">Downloads as a high-resolution PNG</p>
-        </div>
+
+        </aside>
+
+        {/* ─── Card Grid ─── */}
+        <main className="cards-area">
+          <div className="cards-header">
+            <h2 style={{ fontFamily: "'Fredoka One', cursive", color: '#4a2dad', fontSize: '1.2rem' }}>
+              🖼️ {activeSubjects.length} Card{activeSubjects.length !== 1 ? 's' : ''} Generated
+            </h2>
+            {activeSubjects.length > 0 && (
+              <button className="btn-primary" onClick={downloadAll}>
+                ⬇️ Download All
+              </button>
+            )}
+          </div>
+
+          {activeSubjects.length === 0 ? (
+            <div className="empty-state">
+              <div className="big-icon">🎨</div>
+              <p>Select at least one subject to generate cards</p>
+            </div>
+          ) : (
+            <div className={`cards-grid template-${template}`}>
+              {activeSubjects.map(subj => (
+                <div key={subj.id} className="card-wrapper">
+                  <SubjectCard
+                    ref={el => cardRefs.current[subj.id] = el}
+                    subject={subj}
+                    photo={photo}
+                    studentName={studentName}
+                    section={section}
+                    template={template}
+                    colorTheme={colorTheme}
+                  />
+                  <button
+                    className="dl-btn"
+                    onClick={() => downloadCard(subj.id)}
+                    disabled={downloading === subj.id}
+                  >
+                    {downloading === subj.id ? '⏳' : '⬇️'} Save
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
       </div>
     </div>
   )
