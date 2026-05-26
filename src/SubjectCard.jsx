@@ -1,7 +1,7 @@
 import { forwardRef } from 'react'
 
 const SubjectCard = forwardRef(function SubjectCard(
-  { subject, photo, cardBg, studentName, grade, section, teacher, template, colorTheme, font, fontColor, showEmoji, emojis },
+  { subject, photo, cardBg, studentName, grade, section, teacher, template, colorTheme, font, fontColor, infoColor, showEmoji, emojis },
   ref
 ) {
   const filterStyle = {
@@ -10,7 +10,7 @@ const SubjectCard = forwardRef(function SubjectCard(
     dark:   'saturate(1.1) brightness(0.82)',
   }[colorTheme] || 'none'
 
-  const props = { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, showEmoji, emojis, filterStyle }
+  const props = { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor: infoColor || '#ffffff', showEmoji, emojis, filterStyle }
 
   if (template === 'label')    return <LabelCard    ref={ref} {...props} />
   if (template === 'banner')   return <BannerCard   ref={ref} {...props} />
@@ -38,7 +38,7 @@ function BgLayer({ cardBg, color, color2, gradient }) {
 }
 
 /* Name tag shown on cards — 3 layers: name / section / teacher */
-function NameTag({ studentName, grade, section, teacher, sectionBg = 'rgba(0,0,0,0.25)', style = {} }) {
+function NameTag({ studentName, grade, section, teacher, infoColor = '#ffffff', sectionBg = 'rgba(0,0,0,0.25)', style = {} }) {
   if (!studentName && !grade && !section && !teacher) return null
   const gradeSection = [grade, section].filter(Boolean).join(' · ')
   return (
@@ -46,23 +46,22 @@ function NameTag({ studentName, grade, section, teacher, sectionBg = 'rgba(0,0,0
       {studentName && (
         <div style={{
           fontFamily:"'Nunito',sans-serif", fontSize:12, fontWeight:900,
-          color:'rgba(255,255,255,0.97)', textShadow:'0 1px 4px rgba(0,0,0,0.4)',
+          color: infoColor, textShadow:'0 1px 4px rgba(0,0,0,0.4)',
           lineHeight:1.3, marginBottom:3,
         }}>{studentName}</div>
       )}
       {gradeSection && (
         <div style={{
-          display:'inline-block',
-          background: sectionBg,
+          display:'inline-block', background: sectionBg,
           borderRadius:20, padding:'2px 12px',
           fontFamily:"'Nunito',sans-serif", fontSize:10, fontWeight:900,
-          color:'rgba(255,255,255,0.95)', marginBottom:3,
+          color: infoColor, marginBottom:3,
         }}>{gradeSection}</div>
       )}
       {teacher && (
         <div style={{
           fontFamily:"'Nunito',sans-serif", fontSize:10, fontWeight:700,
-          color:'rgba(255,255,255,0.8)', fontStyle:'italic',
+          color: infoColor, fontStyle:'italic', opacity: 0.85,
         }}>{teacher}</div>
       )}
     </div>
@@ -114,7 +113,7 @@ const LabelCard = forwardRef(function LabelCard(
         </div>
       )}
 
-      <NameTag studentName={studentName} grade={grade} section={section} teacher={teacher} style={{ marginTop:8 }} />
+      <NameTag studentName={studentName} grade={grade} section={section} teacher={teacher} infoColor={infoColor} style={{ marginTop:8 }} />
     </div>
   )
 })
@@ -160,9 +159,9 @@ const BadgeCard = forwardRef(function BadgeCard(
 
       {(studentName || grade || section || teacher) && (
         <div style={{ position:'relative', zIndex:2, textAlign:'center', padding:'0 8px' }}>
-          {studentName && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:9, fontWeight:900, color:'rgba(255,255,255,0.9)', lineHeight:1.3 }}>{studentName}</div>}
-          {(grade || section) && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:8, fontWeight:700, color:'rgba(255,255,255,0.75)' }}>{[grade,section].filter(Boolean).join(' · ')}</div>}
-          {teacher && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:8, fontWeight:600, color:'rgba(255,255,255,0.65)', fontStyle:'italic' }}>{teacher}</div>}
+          {studentName && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:9, fontWeight:900, color: infoColor, lineHeight:1.3, textShadow:'0 1px 3px rgba(0,0,0,0.3)' }}>{studentName}</div>}
+          {(grade || section) && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:8, fontWeight:700, color: infoColor, opacity:0.9 }}>{[grade,section].filter(Boolean).join(' · ')}</div>}
+          {teacher && <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:8, fontWeight:600, color: infoColor, fontStyle:'italic', opacity:0.75 }}>{teacher}</div>}
         </div>
       )}
 
@@ -220,7 +219,7 @@ const BannerCard = forwardRef(function BannerCard(
             {emojis.map((e,i) => <span key={i} style={{ fontSize:16 }}>{e}</span>)}
           </div>
         )}
-        <NameTag studentName={studentName} grade={grade} section={section} teacher={teacher} sectionBg="rgba(0,0,0,0.2)" style={{ textAlign:'left' }} />
+        <NameTag studentName={studentName} grade={grade} section={section} teacher={teacher} infoColor={infoColor} sectionBg="rgba(0,0,0,0.2)" style={{ textAlign:'left' }} />
       </div>
     </div>
   )

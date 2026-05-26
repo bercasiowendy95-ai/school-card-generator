@@ -166,7 +166,6 @@ export default function App() {
   const [photo, setPhoto]               = useState(null)
   const [globalCardBg, setGlobalCardBg] = useState(null)
   const [subjectBgs, setSubjectBgs]     = useState({})       // { subjId: base64 }
-  const [subjectThemes, setSubjectThemes] = useState({})     // { subjId: themeIndex }
   const [studentName, setStudentName]   = useState('')
   const [grade, setGrade]               = useState('')
   const [section, setSection]           = useState('')
@@ -176,6 +175,7 @@ export default function App() {
   const [colorTheme, setColorTheme]     = useState('vivid')
   const [font, setFont]                 = useState('Fredoka One')
   const [fontColor, setFontColor]       = useState('#ffffff')
+  const [infoColor, setInfoColor]       = useState('#ffffff')
   const [cardSize, setCardSize]         = useState('md')
   const [showEmoji, setShowEmoji]       = useState(true)
   const [showPhoto, setShowPhoto]       = useState(true)
@@ -204,9 +204,6 @@ export default function App() {
 
   const clearSubjectBg = (subjId) =>
     setSubjectBgs(prev => { const n = { ...prev }; delete n[subjId]; return n })
-
-  const setSubjectTheme = (subjId, idx) =>
-    setSubjectThemes(prev => ({ ...prev, [subjId]: idx }))
 
   const toggleSubject = id =>
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
@@ -328,6 +325,23 @@ export default function App() {
               </label>
             </div>
 
+            <label style={{ marginTop: 8 }}>Name / Grade / Teacher Color</label>
+            <div className="color-swatches">
+              {FONT_COLORS.map(c => (
+                <button
+                  key={c.id}
+                  className={`color-swatch${infoColor === c.value ? ' active' : ''}`}
+                  style={{ background: c.value, border: c.value === '#ffffff' ? '1px solid #ddd' : 'none' }}
+                  title={c.label}
+                  onClick={() => setInfoColor(c.value)}
+                />
+              ))}
+              <label className="color-swatch custom-color" title="Custom color">
+                <input type="color" value={infoColor} onChange={e => setInfoColor(e.target.value)} />
+                <span>🎨</span>
+              </label>
+            </div>
+
             <label style={{ marginTop: 8 }}>Color Tone</label>
             <div className="tone-row">
               {THEMES.map(th => (
@@ -393,10 +407,9 @@ export default function App() {
           ) : (
             <div className="cards-grid">
               {activeSubjects.map(subj => {
-                const themeIdx  = subjectThemes[subj.id] ?? 0
-                const themes    = subj.themes || [{ name:'General', emojis: subj.emojis || ['⭐','📌','✏️'] }]
-                const activeEmojis = themes[themeIdx]?.emojis || themes[0].emojis
-                const cardBg    = subjectBgs[subj.id] || globalCardBg
+                const themes       = subj.themes || [{ emojis: ['⭐','📌','✏️'] }]
+                const activeEmojis = themes[0].emojis
+                const cardBg       = subjectBgs[subj.id] || globalCardBg
 
                 return (
                   <div key={subj.id} className="card-wrapper">
@@ -415,6 +428,7 @@ export default function App() {
                         colorTheme={colorTheme}
                         font={font}
                         fontColor={fontColor}
+                        infoColor={infoColor}
                         showEmoji={showEmoji}
                         emojis={activeEmojis}
                       />
@@ -423,19 +437,6 @@ export default function App() {
 
                     {/* Per-subject controls */}
                     <div className="card-controls">
-                      {/* Topic theme switcher */}
-                      {themes.length > 1 && (
-                        <div className="theme-pills">
-                          {themes.map((th, i) => (
-                            <button
-                              key={i}
-                              className={`theme-pill${themeIdx === i ? ' active' : ''}`}
-                              onClick={() => setSubjectTheme(subj.id, i)}
-                            >{th.name}</button>
-                          ))}
-                        </div>
-                      )}
-
                       {/* Per-subject BG */}
                       <div className="card-actions-row">
                         <label className="card-bg-btn" title="Upload background for this card">
