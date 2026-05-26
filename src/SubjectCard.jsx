@@ -45,12 +45,19 @@ function PhotoCircle({ photo, icon, size, photoZoom = 1, photoX = 50, photoY = 5
       <div style={{ ...base, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.25)', fontSize: size * 0.4 }}>{icon}</div>
     )
   }
-  const scaled = size * photoZoom
-  const left = -((scaled - size) * photoX / 100)
-  const top  = -((scaled - size) * photoY / 100)
   return (
     <div style={base}>
-      <img src={photo} crossOrigin="anonymous" style={{ width: scaled, height: scaled, objectFit: 'cover', position: 'absolute', left, top }} />
+      <img
+        src={photo}
+        crossOrigin="anonymous"
+        style={{
+          width: '100%', height: '100%',
+          objectFit: 'cover',
+          objectPosition: `${photoX}% ${photoY}%`,
+          transform: `scale(${photoZoom})`,
+          transformOrigin: `${photoX}% ${photoY}%`,
+        }}
+      />
     </div>
   )
 }
