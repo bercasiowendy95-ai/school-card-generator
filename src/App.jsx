@@ -234,6 +234,9 @@ function mergeWithDefaults(saved) {
     titleBgOpacity: saved.titleBgOpacity ?? 0,
     infoBgColor:    saved.infoBgColor    ?? '#000000',
     infoBgOpacity:  saved.infoBgOpacity  ?? 0,
+    photoZoom: saved.photoZoom ?? 1,
+    photoX:    saved.photoX    ?? 50,
+    photoY:    saved.photoY    ?? 50,
   }
 }
 
@@ -288,6 +291,11 @@ export default function App() {
   const [infoBgColor, setInfoBgColor]       = useState(saved.infoBgColor)
   const [infoBgOpacity, setInfoBgOpacity]   = useState(saved.infoBgOpacity)
 
+  // Feature: photo adjustment
+  const [photoZoom, setPhotoZoom] = useState(saved.photoZoom)
+  const [photoX,    setPhotoX]    = useState(saved.photoX)
+  const [photoY,    setPhotoY]    = useState(saved.photoY)
+
   // Feature: watermark
   const [watermark, setWatermark]       = useState(saved.watermark)
 
@@ -314,6 +322,7 @@ export default function App() {
       cardColors, subjectFontColors, subjectInfoColors, borderStyle, watermark, printCols,
       titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity,
       subjectTitleBgColors, subjectTitleBgOpacities, subjectInfoBgColors, subjectInfoBgOpacities,
+      photoZoom, photoX, photoY,
     }
     localStorage.setItem(LS_KEY, JSON.stringify(data))
 
@@ -328,6 +337,7 @@ export default function App() {
     cardColors, subjectFontColors, subjectInfoColors, borderStyle, watermark, printCols,
     titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity,
     subjectTitleBgColors, subjectTitleBgOpacities, subjectInfoBgColors, subjectInfoBgOpacities,
+    photoZoom, photoX, photoY,
   ])
 
   const clearSavedData = () => {
@@ -344,6 +354,7 @@ export default function App() {
     setInfoBgColor(def.infoBgColor); setInfoBgOpacity(def.infoBgOpacity)
     setSubjectTitleBgColors(def.subjectTitleBgColors); setSubjectTitleBgOpacities(def.subjectTitleBgOpacities)
     setSubjectInfoBgColors(def.subjectInfoBgColors); setSubjectInfoBgOpacities(def.subjectInfoBgOpacities)
+    setPhotoZoom(def.photoZoom); setPhotoX(def.photoX); setPhotoY(def.photoY)
   }
 
   const readFile = useCallback((file, setter) => {
@@ -448,6 +459,24 @@ export default function App() {
               value={photo} onSet={setPhoto} onClear={() => setPhoto(null)}
               placeholder="🖼️" hint="Child's photo (appears on each card)"
             />
+            {photo && (
+              <div style={{ marginBottom: 10 }}>
+                <div className="backdrop-row" style={{ marginBottom: 4 }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#666', minWidth: 60 }}>Zoom</span>
+                  <input type="range" min="100" max="250" value={Math.round(photoZoom * 100)}
+                    onChange={e => setPhotoZoom(Number(e.target.value) / 100)} />
+                  <span className="opacity-pct">{Math.round(photoZoom * 100)}%</span>
+                </div>
+                <div className="backdrop-row" style={{ marginBottom: 4 }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#666', minWidth: 60 }}>Left/Right</span>
+                  <input type="range" min="0" max="100" value={photoX} onChange={e => setPhotoX(Number(e.target.value))} />
+                </div>
+                <div className="backdrop-row">
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#666', minWidth: 60 }}>Up/Down</span>
+                  <input type="range" min="0" max="100" value={photoY} onChange={e => setPhotoY(Number(e.target.value))} />
+                </div>
+              </div>
+            )}
             <label>Student's Full Name</label>
             <input type="text" placeholder="e.g. Keiszyn Viatrix B. Pava" value={studentName} onChange={e => setStudentName(e.target.value)} />
             <label>Grade</label>
@@ -685,6 +714,9 @@ export default function App() {
                         titleBgOpacity={subjTitleBgOpacity}
                         infoBgColor={subjInfoBgColor}
                         infoBgOpacity={subjInfoBgOpacity}
+                        photoZoom={photoZoom}
+                        photoX={photoX}
+                        photoY={photoY}
                       />
                     </div>
                     <div style={{ height: getScaleOffset(template, scale) }} />
@@ -880,6 +912,9 @@ export default function App() {
           subjectTitleBgOpacities={subjectTitleBgOpacities}
           subjectInfoBgColors={subjectInfoBgColors}
           subjectInfoBgOpacities={subjectInfoBgOpacities}
+          photoZoom={photoZoom}
+          photoX={photoX}
+          photoY={photoY}
         />
       )}
     </div>

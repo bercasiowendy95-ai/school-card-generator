@@ -9,7 +9,7 @@ function hexToRgba(hex, opacity) {
 }
 
 const SubjectCard = forwardRef(function SubjectCard(
-  { subject, photo, cardBg, studentName, grade, section, teacher, template, colorTheme, font, fontColor, infoColor, showEmoji, emojis, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity },
+  { subject, photo, cardBg, studentName, grade, section, teacher, template, colorTheme, font, fontColor, infoColor, showEmoji, emojis, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity, photoZoom, photoX, photoY },
   ref
 ) {
   const filterStyle = {
@@ -23,6 +23,7 @@ const SubjectCard = forwardRef(function SubjectCard(
     font, fontColor, infoColor: infoColor || '#ffffff',
     showEmoji, emojis, filterStyle, borderStyle, watermark,
     titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity,
+    photoZoom, photoX, photoY,
   }
 
   if (template === 'label')    return <LabelCard    ref={ref} {...props} />
@@ -32,16 +33,26 @@ const SubjectCard = forwardRef(function SubjectCard(
 })
 
 /* ── Shared helpers ── */
-function PhotoCircle({ photo, icon, size }) {
+function PhotoCircle({ photo, icon, size, photoZoom = 1, photoX = 50, photoY = 50 }) {
   const base = {
     width: size, height: size, borderRadius: '50%',
     border: '4px solid rgba(255,255,255,0.9)',
     boxShadow: '0 3px 14px rgba(0,0,0,0.25)',
-    display: 'block', flexShrink: 0,
+    flexShrink: 0, overflow: 'hidden', position: 'relative',
   }
-  return photo
-    ? <img src={photo} crossOrigin="anonymous" style={{ ...base, objectFit: 'cover' }} />
-    : <div style={{ ...base, background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.4 }}>{icon}</div>
+  if (!photo) {
+    return (
+      <div style={{ ...base, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.25)', fontSize: size * 0.4 }}>{icon}</div>
+    )
+  }
+  const scaled = size * photoZoom
+  const left = -((scaled - size) * photoX / 100)
+  const top  = -((scaled - size) * photoY / 100)
+  return (
+    <div style={base}>
+      <img src={photo} crossOrigin="anonymous" style={{ width: scaled, height: scaled, objectFit: 'cover', position: 'absolute', left, top }} />
+    </div>
+  )
 }
 
 function BgLayer({ cardBg, color, color2, gradient }) {
@@ -186,7 +197,7 @@ function Watermark() {
    LABEL — bold die-cut banner style
 ───────────────────────────────────────── */
 const LabelCard = forwardRef(function LabelCard(
-  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity }, ref
+  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity, photoZoom, photoX, photoY }, ref
 ) {
   const { name, color, color2 } = subject
   const lines = name.split('\n')
@@ -239,7 +250,7 @@ const LabelCard = forwardRef(function LabelCard(
    BADGE — round sticker
 ───────────────────────────────────────── */
 const BadgeCard = forwardRef(function BadgeCard(
-  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity }, ref
+  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity, photoZoom, photoX, photoY }, ref
 ) {
   const { name, color, color2, icon } = subject
   const isLong = name.replace('\n', '').length > 9
@@ -257,7 +268,7 @@ const BadgeCard = forwardRef(function BadgeCard(
       <div style={{ position: 'absolute', width: 160, height: 160, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.15)', top: -30, left: -30, zIndex: 1, pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', bottom: 10, right: 10, zIndex: 1, pointerEvents: 'none' }} />
 
-      {photo && <div style={{ position: 'relative', zIndex: 2, marginBottom: 4 }}><PhotoCircle photo={photo} icon={icon} size={72} /></div>}
+      {photo && <div style={{ position: 'relative', zIndex: 2, marginBottom: 4 }}><PhotoCircle photo={photo} icon={icon} photoZoom={photoZoom} photoX={photoX} photoY={photoY} size={72} /></div>}
 
       <div style={{ position: 'relative', zIndex: 2, marginBottom: 4 }}>
         <div style={{ display: 'inline-block', background: hexToRgba(titleBgColor, titleBgOpacity), borderRadius: 8, padding: titleBgOpacity > 0 ? '2px 10px' : 0 }}>
@@ -294,7 +305,7 @@ const BadgeCard = forwardRef(function BadgeCard(
    BANNER — wide card with photo
 ───────────────────────────────────────── */
 const BannerCard = forwardRef(function BannerCard(
-  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity }, ref
+  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity, photoZoom, photoX, photoY }, ref
 ) {
   const { name, color, color2, icon } = subject
   const isLong = name.replace('\n', '').length > 10
@@ -314,7 +325,7 @@ const BannerCard = forwardRef(function BannerCard(
 
       {/* Photo column */}
       <div style={{ width: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 2, padding: '12px 0 12px 12px' }}>
-        <PhotoCircle photo={photo} icon={icon} size={86} />
+        <PhotoCircle photo={photo} icon={icon} photoZoom={photoZoom} photoX={photoX} photoY={photoY} size={86} />
       </div>
 
       {/* Divider */}
@@ -349,7 +360,7 @@ const BannerCard = forwardRef(function BannerCard(
    PORTRAIT — tall card
 ───────────────────────────────────────── */
 const PortraitCard = forwardRef(function PortraitCard(
-  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity }, ref
+  { subject, photo, cardBg, studentName, grade, section, teacher, font, fontColor, infoColor, showEmoji, emojis, filterStyle, borderStyle, watermark, titleBgColor, titleBgOpacity, infoBgColor, infoBgOpacity, photoZoom, photoX, photoY }, ref
 ) {
   const { name, color, color2, icon } = subject
   const isLong = name.replace('\n', '').length > 10
@@ -381,7 +392,7 @@ const PortraitCard = forwardRef(function PortraitCard(
       </div>
 
       <div style={{ position: 'relative', zIndex: 2, marginBottom: 8 }}>
-        <PhotoCircle photo={photo} icon={icon} size={96} />
+        <PhotoCircle photo={photo} icon={icon} photoZoom={photoZoom} photoX={photoX} photoY={photoY} size={96} />
       </div>
 
       {showEmoji && (

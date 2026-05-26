@@ -65,6 +65,9 @@ export default function PrintSheet({
   subjectTitleBgOpacities = {},
   subjectInfoBgColors = {},
   subjectInfoBgOpacities = {},
+  photoZoom = 1,
+  photoX = 50,
+  photoY = 50,
 }) {
   const printAreaRef = useRef(null)
   const [showCutMarks, setShowCutMarks] = useState(true)
@@ -181,6 +184,9 @@ export default function PrintSheet({
                         titleBgOpacity={subjTitleBgOpacity}
                         infoBgColor={subjInfoBgColor}
                         infoBgOpacity={subjInfoBgOpacity}
+                        photoZoom={photoZoom}
+                        photoX={photoX}
+                        photoY={photoY}
                       />
                     </div>
                   </div>
