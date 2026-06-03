@@ -71,6 +71,14 @@ export default function PrintSheet({
 }) {
   const printAreaRef = useRef(null)
   const [showCutMarks, setShowCutMarks] = useState(true)
+  const [selectedIds, setSelectedIds] = useState(() => new Set(activeSubjects.map(s => s.id)))
+
+  const toggleSelect = id =>
+    setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const selectAll  = () => setSelectedIds(new Set(activeSubjects.map(s => s.id)))
+  const selectNone = () => setSelectedIds(new Set())
+
+  const printSubjects = activeSubjects.filter(s => selectedIds.has(s.id))
 
   const dims = CARD_DIMS[template] || CARD_DIMS.badge
 
@@ -84,7 +92,7 @@ export default function PrintSheet({
   // but always respects page-break-after:always on block containers.
   const SAFE_PAGE_H = 950  // conservative A4 usable height in CSS px (≈252mm)
   const rowsPerPage = Math.max(1, Math.floor((SAFE_PAGE_H + GAP) / (cellH + GAP)))
-  const totalRows = Math.ceil(activeSubjects.length / printCols)
+  const totalRows = Math.ceil(printSubjects.length / printCols)
   const pageGroups = Array.from({ length: Math.ceil(totalRows / rowsPerPage) }, (_, pi) => {
     const startRow = pi * rowsPerPage
     return Array.from({ length: Math.min(rowsPerPage, totalRows - startRow) }, (_, ri) => startRow + ri)
@@ -125,6 +133,29 @@ export default function PrintSheet({
             </button>
             <button className="card-bg-clear" onClick={onClose} style={{ width: 32, height: 32, fontSize: '1rem' }}>✕</button>
           </div>
+          {/* Card selection row */}
+          <div className="print-select-row">
+            <span style={{ fontWeight: 700, fontSize: '0.78rem', color: '#666', flexShrink: 0 }}>
+              Cards to print ({selectedIds.size}/{activeSubjects.length}):
+            </span>
+            <button className="btn-tiny" onClick={selectAll}>All</button>
+            <button className="btn-tiny outline" onClick={selectNone}>None</button>
+            <div className="print-subject-chips">
+              {activeSubjects.map(s => (
+                <button
+                  key={s.id}
+                  className={`print-chip${selectedIds.has(s.id) ? ' selected' : ''}`}
+                  onClick={() => toggleSelect(s.id)}
+                  title={s.name.replace('\n', ' ')}
+                >
+                  <span className="print-chip-dot" style={{ background: s.color }} />
+                  {s.name.replace('\n', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'none' }}>{/* dummy to close header controls div cleanly */}
+          </div>
         </div>
 
         {/* Print area — this is what gets printed */}
@@ -141,7 +172,7 @@ export default function PrintSheet({
                 }}
               >
                 {rowIndices.map(rowIdx => {
-                  const rowSubjects = activeSubjects.slice(rowIdx * printCols, (rowIdx + 1) * printCols)
+                  const rowSubjects = printSubjects.slice(rowIdx * printCols, (rowIdx + 1) * printCols)
                   return (
                     <div
                       key={rowIdx}

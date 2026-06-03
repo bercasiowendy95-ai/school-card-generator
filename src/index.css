@@ -406,6 +406,31 @@ input[type="text"]:focus { border-color: #7c5cbf; background: #faf7ff; }
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
 
+.print-select-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px 10px;
+  border-top: 1px solid #f0eaff;
+  flex-wrap: wrap;
+}
+.print-subject-chips {
+  display: flex; flex-wrap: wrap; gap: 5px; flex: 1;
+}
+.print-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 10px 3px 6px;
+  border-radius: 20px; border: 1.5px solid #ddd;
+  background: #f5f5f5; cursor: pointer;
+  font-size: 0.72rem; font-weight: 600; color: #888;
+  transition: all 0.15s;
+}
+.print-chip.selected {
+  border-color: #6c3fc5; background: #ede7ff; color: #4a2dad;
+}
+.print-chip:hover { border-color: #b09cee; }
+.print-chip-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+
 .print-area-scroll {
   overflow-x: auto;
   padding: 20px;
