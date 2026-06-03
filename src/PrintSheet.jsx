@@ -120,80 +120,90 @@ export default function PrintSheet({
         {/* Print area — this is what gets printed */}
         <div className="print-area-scroll">
           <div id="print-area" ref={printAreaRef} className="print-area">
-            <div
-              className="print-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: `repeat(${printCols}, ${cellW}px)`,
-                gap: GAP,
-                width: A4_W,
-              }}
-            >
-              {activeSubjects.map(subj => {
-                const themes = subj.themes || [{ emojis: ['⭐', '📌', '✏️'] }]
-                const activeEmojis = themes[0].emojis
-                const cardBg = subjectBgs[subj.id] || globalCardBg
-                const customColor = cardColors?.[subj.id]
-                const subjFontColor      = subjectFontColors[subj.id]      || fontColor
-                const subjInfoColor      = subjectInfoColors[subj.id]      || infoColor
-                const subjTitleBgColor   = subjectTitleBgColors[subj.id]   ?? titleBgColor
-                const subjTitleBgOpacity = subjectTitleBgOpacities[subj.id] ?? titleBgOpacity
-                const subjInfoBgColor    = subjectInfoBgColors[subj.id]    ?? infoBgColor
-                const subjInfoBgOpacity  = subjectInfoBgOpacities[subj.id] ?? infoBgOpacity
+            {/* Group subjects into rows — break-inside:avoid on rows works in Chrome; on grid items it doesn't */}
+            {Array.from({ length: Math.ceil(activeSubjects.length / printCols) }, (_, rowIdx) => {
+              const rowSubjects = activeSubjects.slice(rowIdx * printCols, (rowIdx + 1) * printCols)
+              return (
+                <div
+                  key={rowIdx}
+                  className="print-row"
+                  style={{
+                    display: 'flex',
+                    gap: GAP,
+                    width: A4_W,
+                    marginBottom: rowIdx < Math.ceil(activeSubjects.length / printCols) - 1 ? GAP : 0,
+                    breakInside: 'avoid',
+                    pageBreakInside: 'avoid',
+                  }}
+                >
+                  {rowSubjects.map(subj => {
+                    const themes = subj.themes || [{ emojis: ['⭐', '📌', '✏️'] }]
+                    const activeEmojis = themes[0].emojis
+                    const cardBg = subjectBgs[subj.id] || globalCardBg
+                    const customColor = cardColors?.[subj.id]
+                    const subjFontColor      = subjectFontColors[subj.id]      || fontColor
+                    const subjInfoColor      = subjectInfoColors[subj.id]      || infoColor
+                    const subjTitleBgColor   = subjectTitleBgColors[subj.id]   ?? titleBgColor
+                    const subjTitleBgOpacity = subjectTitleBgOpacities[subj.id] ?? titleBgOpacity
+                    const subjInfoBgColor    = subjectInfoBgColors[subj.id]    ?? infoBgColor
+                    const subjInfoBgOpacity  = subjectInfoBgOpacities[subj.id] ?? infoBgOpacity
 
-                return (
-                  <div
-                    key={subj.id}
-                    className="print-cell"
-                    style={{
-                      width: cellW,
-                      height: cellH,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      overflow: 'visible',
-                      position: 'relative',
-                    }}
-                  >
-                    {showCutMarks && <CutMarks cellW={cellW} cellH={cellH} />}
-                    <div style={{
-                      transform: `scale(${scale})`,
-                      transformOrigin: 'center center',
-                      flexShrink: 0,
-                    }}>
-                      <SubjectCard
-                        subject={customColor
-                          ? { ...subj, color: customColor.c1, color2: customColor.c2 }
-                          : subj
-                        }
-                        photo={photo}
-                        cardBg={cardBg}
-                        studentName={studentName}
-                        grade={grade}
-                        section={section}
-                        teacher={teacher}
-                        template={template}
-                        colorTheme={colorTheme}
-                        font={font}
-                        fontColor={subjFontColor}
-                        infoColor={subjInfoColor}
-                        showEmoji={showEmoji}
-                        emojis={activeEmojis}
-                        borderStyle={borderStyle}
-                        watermark={watermark}
-                        titleBgColor={subjTitleBgColor}
-                        titleBgOpacity={subjTitleBgOpacity}
-                        infoBgColor={subjInfoBgColor}
-                        infoBgOpacity={subjInfoBgOpacity}
-                        photoZoom={photoZoom}
-                        photoX={photoX}
-                        photoY={photoY}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                    return (
+                      <div
+                        key={subj.id}
+                        className="print-cell"
+                        style={{
+                          width: cellW,
+                          height: cellH,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'visible',
+                          position: 'relative',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {showCutMarks && <CutMarks cellW={cellW} cellH={cellH} />}
+                        <div style={{
+                          transform: `scale(${scale})`,
+                          transformOrigin: 'center center',
+                          flexShrink: 0,
+                        }}>
+                          <SubjectCard
+                            subject={customColor
+                              ? { ...subj, color: customColor.c1, color2: customColor.c2 }
+                              : subj
+                            }
+                            photo={photo}
+                            cardBg={cardBg}
+                            studentName={studentName}
+                            grade={grade}
+                            section={section}
+                            teacher={teacher}
+                            template={template}
+                            colorTheme={colorTheme}
+                            font={font}
+                            fontColor={subjFontColor}
+                            infoColor={subjInfoColor}
+                            showEmoji={showEmoji}
+                            emojis={activeEmojis}
+                            borderStyle={borderStyle}
+                            watermark={watermark}
+                            titleBgColor={subjTitleBgColor}
+                            titleBgOpacity={subjTitleBgOpacity}
+                            infoBgColor={subjInfoBgColor}
+                            infoBgOpacity={subjInfoBgOpacity}
+                            photoZoom={photoZoom}
+                            photoX={photoX}
+                            photoY={photoY}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
