@@ -99,7 +99,38 @@ export default function PrintSheet({
   })
 
   const handlePrint = () => {
-    window.print()
+    const area = printAreaRef.current
+    if (!area) return
+
+    // Open a fresh window with only the card HTML — most reliable cross-browser print approach.
+    // Chrome ignores print-color-adjust:exact via CSS inheritance, but respects it via inline styles.
+    const win = window.open('', '_blank', 'width=900,height=700')
+    if (!win) { window.print(); return }  // fallback if popup is blocked
+
+    // Stamp print-color-adjust on every element in the cloned HTML
+    const clone = area.cloneNode(true)
+    clone.querySelectorAll('*').forEach(el => {
+      el.style.WebkitPrintColorAdjust = 'exact'
+      el.style.printColorAdjust = 'exact'
+      el.style.colorAdjust = 'exact'
+    })
+
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Bangers&family=Lilita+One&family=Pacifico&family=Boogaloo&family=Titan+One&family=Nunito:wght@400;600;700;800;900&display=swap">
+  <style>
+    @page { size: A4 portrait; margin: 10mm; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+    body { background: white; }
+    .print-row { display: flex; }
+  </style>
+</head>
+<body>${clone.outerHTML}</body>
+</html>`)
+    win.document.close()
+    setTimeout(() => { win.focus(); win.print(); win.close() }, 1200)
   }
 
   return (
