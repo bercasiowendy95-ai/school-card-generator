@@ -80,6 +80,16 @@ export default function PrintSheet({
   const scale = Math.min(cellW / dims.w, 1)
   const cellH = dims.h * scale
 
+  // Calculate explicit page groups — Chrome ignores break-inside:avoid on flex/grid,
+  // but always respects page-break-after:always on block containers.
+  const SAFE_PAGE_H = 950  // conservative A4 usable height in CSS px (≈252mm)
+  const rowsPerPage = Math.max(1, Math.floor((SAFE_PAGE_H + GAP) / (cellH + GAP)))
+  const totalRows = Math.ceil(activeSubjects.length / printCols)
+  const pageGroups = Array.from({ length: Math.ceil(totalRows / rowsPerPage) }, (_, pi) => {
+    const startRow = pi * rowsPerPage
+    return Array.from({ length: Math.min(rowsPerPage, totalRows - startRow) }, (_, ri) => startRow + ri)
+  })
+
   const handlePrint = () => {
     window.print()
   }
@@ -120,90 +130,64 @@ export default function PrintSheet({
         {/* Print area — this is what gets printed */}
         <div className="print-area-scroll">
           <div id="print-area" ref={printAreaRef} className="print-area">
-            {/* Group subjects into rows — break-inside:avoid on rows works in Chrome; on grid items it doesn't */}
-            {Array.from({ length: Math.ceil(activeSubjects.length / printCols) }, (_, rowIdx) => {
-              const rowSubjects = activeSubjects.slice(rowIdx * printCols, (rowIdx + 1) * printCols)
-              return (
-                <div
-                  key={rowIdx}
-                  className="print-row"
-                  style={{
-                    display: 'flex',
-                    gap: GAP,
-                    width: A4_W,
-                    marginBottom: rowIdx < Math.ceil(activeSubjects.length / printCols) - 1 ? GAP : 0,
-                    breakInside: 'avoid',
-                    pageBreakInside: 'avoid',
-                  }}
-                >
-                  {rowSubjects.map(subj => {
-                    const themes = subj.themes || [{ emojis: ['⭐', '📌', '✏️'] }]
-                    const activeEmojis = themes[0].emojis
-                    const cardBg = subjectBgs[subj.id] || globalCardBg
-                    const customColor = cardColors?.[subj.id]
-                    const subjFontColor      = subjectFontColors[subj.id]      || fontColor
-                    const subjInfoColor      = subjectInfoColors[subj.id]      || infoColor
-                    const subjTitleBgColor   = subjectTitleBgColors[subj.id]   ?? titleBgColor
-                    const subjTitleBgOpacity = subjectTitleBgOpacities[subj.id] ?? titleBgOpacity
-                    const subjInfoBgColor    = subjectInfoBgColors[subj.id]    ?? infoBgColor
-                    const subjInfoBgOpacity  = subjectInfoBgOpacities[subj.id] ?? infoBgOpacity
-
-                    return (
-                      <div
-                        key={subj.id}
-                        className="print-cell"
-                        style={{
-                          width: cellW,
-                          height: cellH,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          overflow: 'visible',
-                          position: 'relative',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {showCutMarks && <CutMarks cellW={cellW} cellH={cellH} />}
-                        <div style={{
-                          transform: `scale(${scale})`,
-                          transformOrigin: 'center center',
-                          flexShrink: 0,
-                        }}>
-                          <SubjectCard
-                            subject={customColor
-                              ? { ...subj, color: customColor.c1, color2: customColor.c2 }
-                              : subj
-                            }
-                            photo={photo}
-                            cardBg={cardBg}
-                            studentName={studentName}
-                            grade={grade}
-                            section={section}
-                            teacher={teacher}
-                            template={template}
-                            colorTheme={colorTheme}
-                            font={font}
-                            fontColor={subjFontColor}
-                            infoColor={subjInfoColor}
-                            showEmoji={showEmoji}
-                            emojis={activeEmojis}
-                            borderStyle={borderStyle}
-                            watermark={watermark}
-                            titleBgColor={subjTitleBgColor}
-                            titleBgOpacity={subjTitleBgOpacity}
-                            infoBgColor={subjInfoBgColor}
-                            infoBgOpacity={subjInfoBgOpacity}
-                            photoZoom={photoZoom}
-                            photoX={photoX}
-                            photoY={photoY}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )
-            })}
+            {/* Explicit page groups: Chrome always respects page-break-after:always */}
+            {pageGroups.map((rowIndices, pageIdx) => (
+              <div
+                key={pageIdx}
+                style={{
+                  width: A4_W,
+                  pageBreakAfter: pageIdx < pageGroups.length - 1 ? 'always' : 'auto',
+                  breakAfter:     pageIdx < pageGroups.length - 1 ? 'page'   : 'auto',
+                }}
+              >
+                {rowIndices.map(rowIdx => {
+                  const rowSubjects = activeSubjects.slice(rowIdx * printCols, (rowIdx + 1) * printCols)
+                  return (
+                    <div
+                      key={rowIdx}
+                      className="print-row"
+                      style={{ display: 'flex', gap: GAP, width: A4_W, marginBottom: rowIdx < totalRows - 1 ? GAP : 0 }}
+                    >
+                      {rowSubjects.map(subj => {
+                        const themes = subj.themes || [{ emojis: ['⭐', '📌', '✏️'] }]
+                        const activeEmojis = themes[0].emojis
+                        const cardBg = subjectBgs[subj.id] || globalCardBg
+                        const customColor = cardColors?.[subj.id]
+                        const subjFontColor      = subjectFontColors[subj.id]       || fontColor
+                        const subjInfoColor      = subjectInfoColors[subj.id]       || infoColor
+                        const subjTitleBgColor   = subjectTitleBgColors[subj.id]    ?? titleBgColor
+                        const subjTitleBgOpacity = subjectTitleBgOpacities[subj.id] ?? titleBgOpacity
+                        const subjInfoBgColor    = subjectInfoBgColors[subj.id]     ?? infoBgColor
+                        const subjInfoBgOpacity  = subjectInfoBgOpacities[subj.id]  ?? infoBgOpacity
+                        return (
+                          <div
+                            key={subj.id}
+                            className="print-cell"
+                            style={{ width: cellW, height: cellH, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', position: 'relative', flexShrink: 0 }}
+                          >
+                            {showCutMarks && <CutMarks cellW={cellW} cellH={cellH} />}
+                            <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center', flexShrink: 0 }}>
+                              <SubjectCard
+                                subject={customColor ? { ...subj, color: customColor.c1, color2: customColor.c2 } : subj}
+                                photo={photo} cardBg={cardBg}
+                                studentName={studentName} grade={grade} section={section} teacher={teacher}
+                                template={template} colorTheme={colorTheme} font={font}
+                                fontColor={subjFontColor} infoColor={subjInfoColor}
+                                showEmoji={showEmoji} emojis={activeEmojis}
+                                borderStyle={borderStyle} watermark={watermark}
+                                titleBgColor={subjTitleBgColor} titleBgOpacity={subjTitleBgOpacity}
+                                infoBgColor={subjInfoBgColor} infoBgOpacity={subjInfoBgOpacity}
+                                photoZoom={photoZoom} photoX={photoX} photoY={photoY}
+                              />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
           </div>
         </div>
       </div>
