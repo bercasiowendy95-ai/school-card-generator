@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import SubjectCard from './SubjectCard'
 
-const MARK_OFFSET = 12  // how far outside the card the border sits
+const MARK_OFFSET = 8  // how far outside the card the border sits
 
 function CutMarks({ cellW, cellH }) {
   return (
@@ -74,7 +74,7 @@ export default function PrintSheet({
 
   const dims = CARD_DIMS[template] || CARD_DIMS.badge
 
-  const A4_W = 754
+  const A4_W = 718  // 190mm at 96dpi — A4 content width with 10mm margins
   const GAP = showCutMarks ? 36 : 12
   const cellW = (A4_W - GAP * (printCols - 1)) / printCols
   const scale = Math.min(cellW / dims.w, 1)
