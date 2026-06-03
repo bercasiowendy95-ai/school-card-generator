@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import html2canvas from 'html2canvas'
 import SubjectCard from './SubjectCard'
 
 const MARK_OFFSET = 3  // how far outside the card the border sits
@@ -71,6 +72,8 @@ export default function PrintSheet({
 }) {
   const printAreaRef = useRef(null)
   const [showCutMarks, setShowCutMarks] = useState(true)
+  const [printing, setPrinting] = useState(false)
+  const pageGroupRefs = useRef({})
   const [selectedIds, setSelectedIds] = useState(() => new Set(activeSubjects.map(s => s.id)))
 
   const toggleSelect = id =>
@@ -98,39 +101,46 @@ export default function PrintSheet({
     return Array.from({ length: Math.min(rowsPerPage, totalRows - startRow) }, (_, ri) => startRow + ri)
   })
 
-  const handlePrint = () => {
-    const area = printAreaRef.current
-    if (!area) return
+  const handlePrint = async () => {
+    if (printing || pageGroups.length === 0) return
+    setPrinting(true)
+    try {
+      // Capture each page group as a high-res canvas image.
+      // html2canvas already works for "Save" — using it here bypasses all
+      // @media print / print-color-adjust / visibility issues entirely.
+      const imgs = []
+      for (let pi = 0; pi < pageGroups.length; pi++) {
+        const el = pageGroupRefs.current[pi]
+        if (!el) continue
+        const canvas = await html2canvas(el, {
+          scale: 3,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+        })
+        imgs.push(canvas.toDataURL('image/png'))
+      }
+      if (imgs.length === 0) return
 
-    // Open a fresh window with only the card HTML — most reliable cross-browser print approach.
-    // Chrome ignores print-color-adjust:exact via CSS inheritance, but respects it via inline styles.
-    const win = window.open('', '_blank', 'width=900,height=700')
-    if (!win) { window.print(); return }  // fallback if popup is blocked
+      // Build a print window with one <img> per page
+      const win = window.open('', '_blank', 'width=900,height=700')
+      if (!win) { alert('Allow popups to print, then try again.'); return }
 
-    // Stamp print-color-adjust on every element in the cloned HTML
-    const clone = area.cloneNode(true)
-    clone.querySelectorAll('*').forEach(el => {
-      el.style.WebkitPrintColorAdjust = 'exact'
-      el.style.printColorAdjust = 'exact'
-      el.style.colorAdjust = 'exact'
-    })
-
-    win.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Bangers&family=Lilita+One&family=Pacifico&family=Boogaloo&family=Titan+One&family=Nunito:wght@400;600;700;800;900&display=swap">
-  <style>
-    @page { size: A4 portrait; margin: 10mm; }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-    body { background: white; }
-    .print-row { display: flex; }
-  </style>
-</head>
-<body>${clone.outerHTML}</body>
-</html>`)
-    win.document.close()
-    setTimeout(() => { win.focus(); win.print(); win.close() }, 1200)
+      const pageCss = `
+        @page { size: A4 portrait; margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: white; }
+        .pg { width: 210mm; height: 297mm; display: flex; align-items: center; justify-content: center; page-break-after: always; overflow: hidden; }
+        .pg:last-child { page-break-after: auto; }
+        .pg img { width: 190mm; height: auto; }
+      `
+      const pages = imgs.map(src => `<div class="pg"><img src="${src}"/></div>`).join('')
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${pageCss}</style></head><body>${pages}<script>window.onload=function(){window.print();}<\/script></body></html>`)
+      win.document.close()
+    } finally {
+      setPrinting(false)
+    }
   }
 
   return (
@@ -159,8 +169,8 @@ export default function PrintSheet({
             >
               ✂️ Cut Marks
             </button>
-            <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.85rem' }} onClick={handlePrint}>
-              Print
+            <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.85rem' }} onClick={handlePrint} disabled={printing}>
+              {printing ? '⏳ Preparing…' : 'Print'}
             </button>
             <button className="card-bg-clear" onClick={onClose} style={{ width: 32, height: 32, fontSize: '1rem' }}>✕</button>
           </div>
@@ -196,10 +206,12 @@ export default function PrintSheet({
             {pageGroups.map((rowIndices, pageIdx) => (
               <div
                 key={pageIdx}
+                ref={el => pageGroupRefs.current[pageIdx] = el}
                 style={{
                   width: A4_W,
                   pageBreakAfter: pageIdx < pageGroups.length - 1 ? 'always' : 'auto',
                   breakAfter:     pageIdx < pageGroups.length - 1 ? 'page'   : 'auto',
+                  background: '#ffffff',
                 }}
               >
                 {rowIndices.map(rowIdx => {
