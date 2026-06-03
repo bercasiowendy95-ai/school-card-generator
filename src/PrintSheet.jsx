@@ -197,7 +197,7 @@ export default function PrintSheet({
                             style={{ width: cellW, height: cellH, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', position: 'relative', flexShrink: 0 }}
                           >
                             {showCutMarks && <CutMarks cellW={cellW} cellH={cellH} />}
-                            <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center', flexShrink: 0 }}>
+                            <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center', flexShrink: 0, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                               <SubjectCard
                                 subject={customColor ? { ...subj, color: customColor.c1, color2: customColor.c2 } : subj}
                                 photo={photo} cardBg={cardBg}

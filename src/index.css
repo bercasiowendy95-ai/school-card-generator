@@ -511,24 +511,18 @@ input[type="text"]:focus { border-color: #7c5cbf; background: #faf7ff; }
 
 /* ── @media print ── */
 @media print {
-  body * { visibility: hidden; }
-
-  /* Remove app chrome from the document flow so they don't create blank pages */
+  /* Hide app chrome with display:none (removes from flow, no visibility quirks) */
   .header,
-  .sidebar-layout,
-  .cards-area,
-  .cards-header,
-  .cards-grid {
+  .sidebar-layout {
     display: none !important;
   }
 
-  /* Strip modal chrome — make containers transparent and flow naturally */
+  /* Strip modal chrome */
   .print-modal-overlay {
     position: static !important;
     background: transparent !important;
     inset: unset !important;
     display: block !important;
-    visibility: visible !important;
   }
   .print-modal {
     position: static !important;
@@ -537,28 +531,26 @@ input[type="text"]:focus { border-color: #7c5cbf; background: #faf7ff; }
     box-shadow: none !important; border-radius: 0 !important;
     padding: 0 !important; background: white !important;
     display: block !important;
-    visibility: visible !important;
   }
   .print-modal-header { display: none !important; }
+  .print-select-row   { display: none !important; }
   .print-area-scroll {
     overflow: visible !important; max-height: none !important;
     display: block !important; padding: 0 !important;
-    visibility: visible !important;
   }
 
-  #print-area, #print-area * {
-    visibility: visible;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  #print-area { overflow: visible !important; background: white !important; }
-
-  /* Each row stays on the same page — rows paginate, cards inside rows never split */
-  .print-row {
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
-  .print-cell {
+  #print-area {
     overflow: visible !important;
+    background: white !important;
   }
+
+  /* Force backgrounds/gradients to print on every card element */
+  #print-area,
+  #print-area * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .print-cell { overflow: visible !important; }
 }
