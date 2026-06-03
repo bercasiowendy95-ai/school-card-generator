@@ -144,6 +144,7 @@ export default function PrintSheet({
                 return (
                   <div
                     key={subj.id}
+                    className="print-cell"
                     style={{
                       width: cellW,
                       height: cellH,

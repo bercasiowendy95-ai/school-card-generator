@@ -183,6 +183,36 @@ const GRADE_PRESETS = [
 
 const LS_KEY = 'school-card-v1'
 
+/* ── Multi-project storage ── */
+const PROJECTS_KEY = 'school-card-projects-v1'
+const getProjectKey = id => `school-card-proj-${id}`
+
+function loadProjectsIndex() {
+  try { const r = localStorage.getItem(PROJECTS_KEY); return r ? JSON.parse(r) : null } catch { return null }
+}
+function saveProjectsIndex(idx) {
+  try { localStorage.setItem(PROJECTS_KEY, JSON.stringify(idx)) } catch {}
+}
+function loadProjectById(id) {
+  try { const r = localStorage.getItem(getProjectKey(id)); return r ? JSON.parse(r) : {} } catch { return {} }
+}
+function saveProjectById(id, data) {
+  try { localStorage.setItem(getProjectKey(id), JSON.stringify(data)) }
+  catch { try { localStorage.setItem(getProjectKey(id), JSON.stringify({ ...data, photo: null, globalCardBg: null, subjectBgs: {} })) } catch {} }
+}
+function initProjects() {
+  const existing = loadProjectsIndex()
+  if (existing?.list?.length) return existing
+  // Migrate from old single-project storage
+  const oldData = (() => { try { const r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : {} } catch { return {} } })()
+  const id = `proj_${Date.now()}`
+  const name = oldData.studentName?.trim() || 'My Design'
+  saveProjectById(id, oldData)
+  const idx = { active: id, list: [{ id, name }] }
+  saveProjectsIndex(idx)
+  return idx
+}
+
 /* ── Auto-contrast utility ── */
 export function getAutoContrast(hex) {
   if (!hex || hex.length < 4) return '#ffffff'
@@ -244,7 +274,10 @@ function mergeWithDefaults(saved) {
 }
 
 export default function App() {
-  const saved = mergeWithDefaults(loadSaved())
+  const [projectsIndex, setProjectsIndex] = useState(() => initProjects())
+  const saved = mergeWithDefaults(loadProjectById(projectsIndex.active))
+  const [editingProjectName, setEditingProjectName] = useState(null)
+  const [projectNameDraft, setProjectNameDraft]     = useState('')
 
   const [photo, setPhoto]               = useState(saved.photo)
   const [globalCardBg, setGlobalCardBg] = useState(saved.globalCardBg)
@@ -328,12 +361,7 @@ export default function App() {
       photoZoom, photoX, photoY,
       photo, globalCardBg, subjectBgs,
     }
-    try {
-      localStorage.setItem(LS_KEY, JSON.stringify(data))
-    } catch {
-      // quota exceeded — save without images
-      try { localStorage.setItem(LS_KEY, JSON.stringify({ ...data, photo: null, globalCardBg: null, subjectBgs: {} })) } catch {}
-    }
+    saveProjectById(projectsIndex.active, data)
 
     // flash indicator
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
@@ -348,10 +376,11 @@ export default function App() {
     subjectTitleBgColors, subjectTitleBgOpacities, subjectInfoBgColors, subjectInfoBgOpacities,
     photoZoom, photoX, photoY,
     photo, globalCardBg, subjectBgs,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    projectsIndex.active,
   ])
 
   const clearSavedData = () => {
-    localStorage.removeItem(LS_KEY)
     const def = mergeWithDefaults({})
     setStudentName(def.studentName); setGrade(def.grade); setSection(def.section); setTeacher(def.teacher)
     setSelected(def.selected); setTemplate(def.template); setColorTheme(def.colorTheme)
@@ -367,6 +396,62 @@ export default function App() {
     setPhotoZoom(def.photoZoom); setPhotoX(def.photoX); setPhotoY(def.photoY)
     setPhoto(null); setGlobalCardBg(null); setSubjectBgs({})
   }
+
+  /* ── Project management ── */
+  const loadProjectIntoState = (projectData) => {
+    const s = mergeWithDefaults(projectData || {})
+    setStudentName(s.studentName); setGrade(s.grade); setSection(s.section); setTeacher(s.teacher)
+    setSelected(s.selected); setTemplate(s.template); setColorTheme(s.colorTheme)
+    setFont(s.font); setFontColor(s.fontColor); setInfoColor(s.infoColor)
+    setCardSize(s.cardSize); setShowEmoji(s.showEmoji); setShowPhoto(s.showPhoto)
+    setCustomSubjects(s.customSubjects); setCardColors(s.cardColors)
+    setSubjectFontColors(s.subjectFontColors); setSubjectInfoColors(s.subjectInfoColors)
+    setSubjectTitleBgColors(s.subjectTitleBgColors); setSubjectTitleBgOpacities(s.subjectTitleBgOpacities)
+    setSubjectInfoBgColors(s.subjectInfoBgColors); setSubjectInfoBgOpacities(s.subjectInfoBgOpacities)
+    setBorderStyle(s.borderStyle); setWatermark(s.watermark); setPrintCols(s.printCols)
+    setTitleBgColor(s.titleBgColor); setTitleBgOpacity(s.titleBgOpacity)
+    setInfoBgColor(s.infoBgColor); setInfoBgOpacity(s.infoBgOpacity)
+    setPhotoZoom(s.photoZoom); setPhotoX(s.photoX); setPhotoY(s.photoY)
+    setPhoto(s.photo); setGlobalCardBg(s.globalCardBg); setSubjectBgs(s.subjectBgs)
+    setOpenColorPicker(null); setOpenFontPicker(null); setOpenInfoPicker(null)
+    setCustomName('')
+  }
+
+  const switchProject = (id) => {
+    const newIndex = { ...projectsIndex, active: id }
+    saveProjectsIndex(newIndex)
+    setProjectsIndex(newIndex)
+    loadProjectIntoState(loadProjectById(id))
+  }
+
+  const createNewProject = () => {
+    const id = `proj_${Date.now()}`
+    const newIndex = { active: id, list: [...projectsIndex.list, { id, name: 'New Design' }] }
+    saveProjectsIndex(newIndex)
+    setProjectsIndex(newIndex)
+    loadProjectIntoState({})
+  }
+
+  const renameProject = (id, name) => {
+    if (!name.trim()) return
+    const newIndex = { ...projectsIndex, list: projectsIndex.list.map(p => p.id === id ? { ...p, name: name.trim() } : p) }
+    saveProjectsIndex(newIndex)
+    setProjectsIndex(newIndex)
+  }
+
+  const deleteProject = (id) => {
+    if (projectsIndex.list.length <= 1) return
+    localStorage.removeItem(getProjectKey(id))
+    const remaining = projectsIndex.list.filter(p => p.id !== id)
+    const newActive = id === projectsIndex.active ? remaining[0].id : projectsIndex.active
+    const newIndex = { active: newActive, list: remaining }
+    saveProjectsIndex(newIndex)
+    setProjectsIndex(newIndex)
+    if (id === projectsIndex.active) loadProjectIntoState(loadProjectById(newActive))
+  }
+
+  const currentProjectName = projectsIndex.list.find(p => p.id === projectsIndex.active)?.name || 'My Design'
+
 
   const readFile = useCallback((file, setter) => {
     if (!file || !file.type.startsWith('image/')) return
@@ -462,6 +547,48 @@ export default function App() {
 
       <div className="sidebar-layout">
         <aside className="sidebar">
+
+          {/* Designs / Project Switcher */}
+          <div className="panel">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <h2 style={{ marginBottom: 0, flex: 1 }}>📁 My Designs</h2>
+              <button className="btn-tiny" onClick={createNewProject} title="New design">+ New</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {projectsIndex.list.map(p => (
+                <div
+                  key={p.id}
+                  className={`project-item${p.id === projectsIndex.active ? ' active' : ''}`}
+                  onClick={() => p.id !== projectsIndex.active && switchProject(p.id)}
+                >
+                  {editingProjectName === p.id ? (
+                    <input
+                      autoFocus
+                      className="project-name-input"
+                      value={projectNameDraft}
+                      onChange={e => setProjectNameDraft(e.target.value)}
+                      onBlur={() => { renameProject(p.id, projectNameDraft); setEditingProjectName(null) }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') { renameProject(p.id, projectNameDraft); setEditingProjectName(null) }
+                        if (e.key === 'Escape') setEditingProjectName(null)
+                      }}
+                      onClick={e => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span className="project-item-name">{p.name}</span>
+                  )}
+                  <div className="project-item-actions" onClick={e => e.stopPropagation()}>
+                    <button className="proj-btn" title="Rename"
+                      onClick={() => { setEditingProjectName(p.id); setProjectNameDraft(p.name) }}>✏️</button>
+                    {projectsIndex.list.length > 1 && (
+                      <button className="proj-btn danger" title="Delete"
+                        onClick={() => { if (window.confirm(`Delete "${p.name}"?`)) deleteProject(p.id) }}>✕</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Student Info */}
           <div className="panel">
