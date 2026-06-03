@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react'
-import html2canvas from 'html2canvas'
 import SubjectCard from './SubjectCard'
 
 const MARK_OFFSET = 3  // how far outside the card the border sits
@@ -73,8 +72,6 @@ export default function PrintSheet({
 }) {
   const printAreaRef = useRef(null)
   const [showCutMarks, setShowCutMarks] = useState(true)
-  const [printing, setPrinting] = useState(false)
-  const pageGroupRefs = useRef({})
   const [selectedIds, setSelectedIds] = useState(() => new Set(activeSubjects.map(s => s.id)))
 
   const toggleSelect = id =>
@@ -102,68 +99,7 @@ export default function PrintSheet({
     return Array.from({ length: Math.min(rowsPerPage, totalRows - startRow) }, (_, ri) => startRow + ri)
   })
 
-  const handlePrint = async () => {
-    if (printing || printSubjects.length === 0) return
-    setPrinting(true)
-    try {
-      // Capture each card individually using cardRefs — same engine as "Save", guaranteed to work.
-      const captured = []
-      for (const subj of printSubjects) {
-        const el = cardRefs[subj.id]
-        if (!el) continue
-        const canvas = await html2canvas(el, {
-          scale: 3, useCORS: true, allowTaint: true,
-          backgroundColor: null, logging: false,
-        })
-        captured.push(canvas.toDataURL('image/png'))
-      }
-      if (!captured.length) return
-
-      // Layout maths (mm)
-      const GAP   = showCutMarks ? 4 : 3   // mm between cards
-      const PW    = 190                      // A4 usable width (mm, with 10mm margins)
-      const PH    = 277                      // A4 usable height (mm)
-      const cellW = (PW - GAP * (printCols - 1)) / printCols
-      const cellH = cellW * (dims.h / dims.w)
-      const rpp   = Math.max(1, Math.floor((PH + GAP) / (cellH + GAP)))  // rows per page
-
-      const cut = showCutMarks
-        ? `outline: 1.5px dashed #bbb; outline-offset: 2px;`
-        : ''
-
-      // Group into pages and build HTML
-      let html = ''
-      const total = captured.length
-      let idx = 0
-      let pageIdx = 0
-      while (idx < total) {
-        const pageCards = captured.slice(idx, idx + rpp * printCols)
-        idx += rpp * printCols
-        const isLast = idx >= total
-        let rows = ''
-        for (let r = 0; r < pageCards.length; r += printCols) {
-          const rowImgs = pageCards.slice(r, r + printCols)
-          const cells = rowImgs.map(src =>
-            `<div style="width:${cellW}mm;height:${cellH}mm;${cut}overflow:hidden;flex-shrink:0;">
-               <img src="${src}" style="width:100%;height:100%;object-fit:contain;display:block;"/>
-             </div>`
-          ).join('')
-          rows += `<div style="display:flex;gap:${GAP}mm;margin-bottom:${r + printCols < pageCards.length ? GAP : 0}mm;">${cells}</div>`
-        }
-        html += `<div style="width:${PW}mm;page-break-after:${isLast ? 'auto' : 'always'};break-after:${isLast ? 'auto' : 'page'};">${rows}</div>`
-        pageIdx++
-      }
-
-      const win = window.open('', '_blank', 'width=900,height=700')
-      if (!win) { alert('Please allow popups from this site, then try again.'); return }
-      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-        <style>@page{size:A4 portrait;margin:10mm;}*{margin:0;padding:0;box-sizing:border-box;}body{background:white;}</style>
-      </head><body>${html}<script>window.onload=function(){window.print();}<\/script></body></html>`)
-      win.document.close()
-    } finally {
-      setPrinting(false)
-    }
-  }
+  const handlePrint = () => window.print()
 
   return (
     <div className="print-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -191,8 +127,8 @@ export default function PrintSheet({
             >
               ✂️ Cut Marks
             </button>
-            <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.85rem' }} onClick={handlePrint} disabled={printing}>
-              {printing ? '⏳ Preparing…' : 'Print'}
+            <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.85rem' }} onClick={handlePrint}>
+              Print
             </button>
             <button className="card-bg-clear" onClick={onClose} style={{ width: 32, height: 32, fontSize: '1rem' }}>✕</button>
           </div>
@@ -228,7 +164,6 @@ export default function PrintSheet({
             {pageGroups.map((rowIndices, pageIdx) => (
               <div
                 key={pageIdx}
-                ref={el => pageGroupRefs.current[pageIdx] = el}
                 style={{
                   width: A4_W,
                   pageBreakAfter: pageIdx < pageGroups.length - 1 ? 'always' : 'auto',
