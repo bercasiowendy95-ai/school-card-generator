@@ -1053,6 +1053,7 @@ export default function App() {
           photoZoom={photoZoom}
           photoX={photoX}
           photoY={photoY}
+          cardRefs={cardRefs.current}
         />
       )}
     </div>

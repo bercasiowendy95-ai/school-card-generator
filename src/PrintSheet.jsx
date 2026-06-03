@@ -69,6 +69,7 @@ export default function PrintSheet({
   photoZoom = 1,
   photoX = 50,
   photoY = 50,
+  cardRefs = {},
 }) {
   const printAreaRef = useRef(null)
   const [showCutMarks, setShowCutMarks] = useState(true)
@@ -102,41 +103,62 @@ export default function PrintSheet({
   })
 
   const handlePrint = async () => {
-    if (printing || pageGroups.length === 0) return
+    if (printing || printSubjects.length === 0) return
     setPrinting(true)
     try {
-      // Capture each page group as a high-res canvas image.
-      // html2canvas already works for "Save" — using it here bypasses all
-      // @media print / print-color-adjust / visibility issues entirely.
-      const imgs = []
-      for (let pi = 0; pi < pageGroups.length; pi++) {
-        const el = pageGroupRefs.current[pi]
+      // Capture each card individually using cardRefs — same engine as "Save", guaranteed to work.
+      const captured = []
+      for (const subj of printSubjects) {
+        const el = cardRefs[subj.id]
         if (!el) continue
         const canvas = await html2canvas(el, {
-          scale: 3,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-          logging: false,
+          scale: 3, useCORS: true, allowTaint: true,
+          backgroundColor: null, logging: false,
         })
-        imgs.push(canvas.toDataURL('image/png'))
+        captured.push(canvas.toDataURL('image/png'))
       }
-      if (imgs.length === 0) return
+      if (!captured.length) return
 
-      // Build a print window with one <img> per page
+      // Layout maths (mm)
+      const GAP   = showCutMarks ? 4 : 3   // mm between cards
+      const PW    = 190                      // A4 usable width (mm, with 10mm margins)
+      const PH    = 277                      // A4 usable height (mm)
+      const cellW = (PW - GAP * (printCols - 1)) / printCols
+      const cellH = cellW * (dims.h / dims.w)
+      const rpp   = Math.max(1, Math.floor((PH + GAP) / (cellH + GAP)))  // rows per page
+
+      const cut = showCutMarks
+        ? `outline: 1.5px dashed #bbb; outline-offset: 2px;`
+        : ''
+
+      // Group into pages and build HTML
+      let html = ''
+      const total = captured.length
+      let idx = 0
+      let pageIdx = 0
+      while (idx < total) {
+        const pageCards = captured.slice(idx, idx + rpp * printCols)
+        idx += rpp * printCols
+        const isLast = idx >= total
+        let rows = ''
+        for (let r = 0; r < pageCards.length; r += printCols) {
+          const rowImgs = pageCards.slice(r, r + printCols)
+          const cells = rowImgs.map(src =>
+            `<div style="width:${cellW}mm;height:${cellH}mm;${cut}overflow:hidden;flex-shrink:0;">
+               <img src="${src}" style="width:100%;height:100%;object-fit:contain;display:block;"/>
+             </div>`
+          ).join('')
+          rows += `<div style="display:flex;gap:${GAP}mm;margin-bottom:${r + printCols < pageCards.length ? GAP : 0}mm;">${cells}</div>`
+        }
+        html += `<div style="width:${PW}mm;page-break-after:${isLast ? 'auto' : 'always'};break-after:${isLast ? 'auto' : 'page'};">${rows}</div>`
+        pageIdx++
+      }
+
       const win = window.open('', '_blank', 'width=900,height=700')
-      if (!win) { alert('Allow popups to print, then try again.'); return }
-
-      const pageCss = `
-        @page { size: A4 portrait; margin: 0; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: white; }
-        .pg { width: 210mm; height: 297mm; display: flex; align-items: center; justify-content: center; page-break-after: always; overflow: hidden; }
-        .pg:last-child { page-break-after: auto; }
-        .pg img { width: 190mm; height: auto; }
-      `
-      const pages = imgs.map(src => `<div class="pg"><img src="${src}"/></div>`).join('')
-      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${pageCss}</style></head><body>${pages}<script>window.onload=function(){window.print();}<\/script></body></html>`)
+      if (!win) { alert('Please allow popups from this site, then try again.'); return }
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <style>@page{size:A4 portrait;margin:10mm;}*{margin:0;padding:0;box-sizing:border-box;}body{background:white;}</style>
+      </head><body>${html}<script>window.onload=function(){window.print();}<\/script></body></html>`)
       win.document.close()
     } finally {
       setPrinting(false)
