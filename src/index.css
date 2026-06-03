@@ -488,25 +488,37 @@ input[type="text"]:focus { border-color: #7c5cbf; background: #faf7ff; }
 @media print {
   body * { visibility: hidden; }
 
-  /* Strip modal chrome so content flows naturally across pages */
+  /* Remove app chrome from the document flow so they don't create blank pages */
+  .header,
+  .sidebar-layout,
+  .cards-area,
+  .cards-header,
+  .cards-grid {
+    display: none !important;
+  }
+
+  /* Strip modal chrome — make containers transparent and flow naturally */
   .print-modal-overlay {
     position: static !important;
     background: transparent !important;
     inset: unset !important;
     display: block !important;
+    visibility: visible !important;
   }
   .print-modal {
     position: static !important;
-    width: auto !important; max-width: none !important;
+    width: 100% !important; max-width: none !important;
     max-height: none !important; overflow: visible !important;
     box-shadow: none !important; border-radius: 0 !important;
     padding: 0 !important; background: white !important;
     display: block !important;
+    visibility: visible !important;
   }
   .print-modal-header { display: none !important; }
   .print-area-scroll {
     overflow: visible !important; max-height: none !important;
     display: block !important; padding: 0 !important;
+    visibility: visible !important;
   }
 
   #print-area, #print-area * {
